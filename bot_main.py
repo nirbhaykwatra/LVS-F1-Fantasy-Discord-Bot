@@ -49,7 +49,7 @@ intents.guild_scheduled_events = True
 
 #region Bot Setup
 load_dotenv()
-bot = cmds.Bot(command_prefix='!', intents=intents)
+bot = commands.Bot(command_prefix='!', intents=intents)
 guild = discord.Object(id=int(os.getenv('GUILD_ID')))
 #endregion
 
