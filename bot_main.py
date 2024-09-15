@@ -79,6 +79,28 @@ async def on_message(message):
 #endregion
 
 
-        logging.info(f'[Message] {author}: {message}')
+#region Command Checks
 
+#endregion
+
+#region Commands
+
+# Global error handler for command tree
+@bot.tree.error
+async def on_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.MissingRole):
+        await interaction.response.send_message(f"You don't have permission to use that command!", ephemeral=True)
+
+
+@bot.tree.command(name='hello', description='Say hello to your little friend', guild=guild)
+@app_commands.checks.has_role('Administrator')
+async def hello(interaction: discord.Interaction):
+    logger.info(f'User role: {interaction.user.roles[1].name}')
+    await interaction.response.send_message(f'Hello, {interaction.user.name}! Nice to meet you!', ephemeral=True)
+
+
+#endregion
+
+# Run the bot. Note: This must be the last method to be called, owing to the fact that
+# it is blocking and will not execute anything after it.
 bot.run(os.getenv('TOKEN'))
