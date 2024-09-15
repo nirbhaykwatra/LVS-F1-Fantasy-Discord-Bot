@@ -1,11 +1,13 @@
 #region Imports
 import os
+
+from discord.app_commands import MissingRole
 from dotenv import load_dotenv
 import logging
 
 import discord
-from discord.ext import commands as cmds
-from discord import app_commands as appcmds
+from discord.ext import commands
+from discord import app_commands
 #endregion
 
 #region Initialize Intents
