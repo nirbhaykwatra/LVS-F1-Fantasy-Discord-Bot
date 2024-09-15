@@ -47,15 +47,26 @@ intents.emojis_and_stickers = True
 intents.guild_scheduled_events = True
 #endregion
 
+
 #region Bot Setup
 load_dotenv()
 bot = commands.Bot(command_prefix='!', intents=intents)
 guild = discord.Object(id=int(os.getenv('GUILD_ID')))
 #endregion
 
+
+#region Bot Event Handlers
 @bot.event
 async def on_ready():
-    logging.info(f'{bot.user} logged into guild {bot.get_guild(guild.id)} with guild ID {guild.id}')
+    logger.info(f'Fantasy Manager is ready.')
+    logger.info(f'{bot.user.name} connected to {bot.get_guild(guild.id)} (guild ID: {guild.id})')
+
+    try:
+        await bot.tree.sync(guild=guild)
+        logger.info(f'Command Tree synced.')
+    except Exception as e:
+        logger.error(f'Command Tree sync failed with exception: {e}')
+
 
 @bot.event
 async def on_message(message):
@@ -64,6 +75,9 @@ async def on_message(message):
     if author == bot.user:
         return
     else:
+        logging.info(f'{author} messaged: {message}')
+#endregion
+
 
         logging.info(f'[Message] {author}: {message}')
 
