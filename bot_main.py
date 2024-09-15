@@ -10,6 +10,32 @@ from discord.ext import commands
 from discord import app_commands
 #endregion
 
+
+#region Logging Setup
+
+# Create logger object
+logger = logging.getLogger('bot-main')
+
+# Set level to DEBUG for base logger object
+logger.setLevel(logging.DEBUG)
+
+# Create logging format for console handler
+logFormat = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}',
+                         datefmt='%Y-%m-%d %H:%M:%S',
+                         style='{')
+
+# Create console handler object
+console = logging.StreamHandler()
+# Set level to INFO for console handler
+console.setLevel(logging.INFO)
+# Set format to logFormat for console handler
+console.setFormatter(logFormat)
+# Add console handler to logger
+logger.addHandler(console)
+
+#endregion
+
+
 #region Initialize Intents
 intents = discord.Intents.none()
 intents.messages = True
