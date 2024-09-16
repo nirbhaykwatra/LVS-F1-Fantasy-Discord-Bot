@@ -42,20 +42,19 @@ guild = discord.Object(id=settings.GUILD_ID)
 
 
 #region Bot Event Handlers
+
+@bot.event
+async def setup_hook():
+    for command in settings.CMDS_DIR.glob("*.py"):
+        if command.name != '__init__.py':
+            await bot.load_extension(f'commands.{command.name[:-3]}')
+            logger.info(f"[COGS]    Loaded '{command.name[:-3]}' cog.")
+
+
 @bot.event
 async def on_ready():
     logger.info(f'Fantasy Manager is ready.')
     logger.info(f'{bot.user.name} connected to {bot.get_guild(guild.id)} (guild ID: {guild.id})')
-
-    for command in settings.CMDS_DIR.glob("*.py"):
-        if command.name != '__init__.py':
-            await bot.load_extension(f'commands.{command.name[:-3]}')
-
-    try:
-        await bot.tree.sync(guild=guild)
-        logger.info(f'Command Tree synced.')
-    except Exception as e:
-        logger.error(f'Command Tree sync failed with exception: {e}')
 
 
 @bot.event
