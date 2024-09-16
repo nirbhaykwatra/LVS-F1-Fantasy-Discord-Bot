@@ -59,17 +59,13 @@ async def on_ready():
 
 @bot.event
 async def on_message(message):
-    author = message.author
-    message = message.content
-    if author == bot.user:
+    message_author = message.author
+    message_content = message.content
+    if message_author == bot.user:
         return
     else:
-        logging.info(f'{author} messaged: {message}')
-#endregion
-
-
-#region Command Checks
-
+        logger.info(f'{message_author} messaged: {message_content}')
+    await bot.process_commands(message)
 #endregion
 
 #region Commands
