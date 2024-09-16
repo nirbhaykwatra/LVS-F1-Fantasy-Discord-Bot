@@ -76,12 +76,31 @@ async def on_error(interaction: discord.Interaction, error: app_commands.AppComm
     if isinstance(error, app_commands.MissingRole):
         await interaction.response.send_message(f"You don't have permission to use that command!", ephemeral=True)
 
-@app_commands.command(name='reload-ext', description='Reload the bot extensions')
-@app_commands.guilds(discord.Object(id=settings.GUILD_ID))
-@app_commands.checks.has_role('Administrator')
-async def reloadext(self, interaction: discord.Interaction):
-    await interaction.response.send_message(f'Extensions reloaded.')
+#region Developer message commands
+@bot.group()
+async def dev(ctx):
+    if ctx.invoked_subcommand is None:
+        await ctx.send(f'{ctx.subcommand_passed} is not a valid subcommand.')
+    dev_logger.info(f"Invoked {ctx.subcommand_passed} subcommand.")
 
+
+@dev.command(name='sync-tree')
+@commands.has_role('Administrator')
+async def sync_tree(ctx):
+    await bot.tree.sync(guild=guild)
+    await ctx.send(f'Command Tree synced.')
+    dev_logger.info(f'Command Tree synced.')
+
+@dev.command(name='reload-extensions')
+@commands.has_role('Administrator')
+async def reload_ext(ctx):
+    for command in settings.CMDS_DIR.glob("*.py"):
+        if command.name != '__init__.py':
+            await bot.reload_extension(f'commands.{command.name[:-3]}')
+            dev_logger.info(f"[COGS]    Reloaded '{command.name[:-3]}' cog.")
+    await ctx.send(f'Extensions reloaded.')
+    dev_logger.info(f'Extensions reloaded.')
+#endregion
 
 #endregion
 
