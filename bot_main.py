@@ -98,12 +98,11 @@ async def on_error(interaction: discord.Interaction, error: app_commands.AppComm
     if isinstance(error, app_commands.MissingRole):
         await interaction.response.send_message(f"You don't have permission to use that command!", ephemeral=True)
 
-
-@bot.tree.command(name='hello', description='Say hello to your little friend', guild=guild)
+@app_commands.command(name='reload-ext', description='Reload the bot extensions')
+@app_commands.guilds(discord.Object(id=settings.GUILD_ID))
 @app_commands.checks.has_role('Administrator')
-async def hello(interaction: discord.Interaction):
-    logger.info(f'User role: {interaction.user.roles[1].name}')
-    await interaction.response.send_message(f'Hello, {interaction.user.name}! Nice to meet you!', ephemeral=True)
+async def reloadext(self, interaction: discord.Interaction):
+    await interaction.response.send_message(f'Extensions reloaded.')
 
 
 #endregion
