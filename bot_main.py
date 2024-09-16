@@ -53,9 +53,8 @@ intents.guild_scheduled_events = True
 
 
 #region Bot Setup
-load_dotenv()
 bot = commands.Bot(command_prefix='!', intents=intents)
-guild = discord.Object(id=int(os.getenv('GUILD_ID')))
+guild = discord.Object(id=settings.GUILD_ID)
 #endregion
 
 
@@ -107,4 +106,4 @@ async def hello(interaction: discord.Interaction):
 
 # Run the bot. Note: This must be the last method to be called, owing to the fact that
 # it is blocking and will not execute anything after it.
-bot.run(os.getenv('TOKEN'))
+bot.run(settings.TOKEN)
