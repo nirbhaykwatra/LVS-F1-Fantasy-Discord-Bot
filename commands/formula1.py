@@ -65,3 +65,6 @@ class Formula1(commands.Cog):
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(Formula1(bot))
 #endregion
+
+if __name__ == '__main__':
+    fastf1_run()
