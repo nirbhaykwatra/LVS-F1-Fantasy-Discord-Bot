@@ -7,6 +7,7 @@ load_dotenv()
 
 BASE_DIR = pathlib.Path(__file__).parent
 CMDS_DIR = BASE_DIR/"commands"
+FASTF1_CACHE_DIR = BASE_DIR/"data"/"fastf1"/"cache"
 
 GUILD_ID = int(os.getenv('GUILD_ID'))
 TOKEN = os.getenv('TOKEN')
