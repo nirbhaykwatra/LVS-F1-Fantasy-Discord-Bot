@@ -8,6 +8,10 @@ import logging
 import discord
 from discord.ext import commands
 from discord import app_commands
+
+import commands as cmds
+import settings
+
 #endregion
 
 
