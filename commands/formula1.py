@@ -22,3 +22,24 @@ def fastf1_run():
 
 #endregion
 
+#region Command Choices
+
+def drivers() -> []:
+    drivers_list = []
+
+    driver_standings = ergast.get_driver_standings(2024).content[0]
+    lastname_series = driver_standings.familyName
+    firstname_series = driver_standings.givenName
+    tla_series = driver_standings.driverCode
+
+    for driver in range(0, len(driver_standings.position)):
+        first_name = firstname_series.get(driver)
+        last_name = lastname_series.get(driver)
+        tla = tla_series.get(driver)
+
+        drivers_list.append(Choice(name=f"{first_name} {last_name}", value=tla))
+
+    return drivers_list
+
+#endregion
+
