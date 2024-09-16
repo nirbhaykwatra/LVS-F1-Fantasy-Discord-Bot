@@ -43,3 +43,25 @@ def drivers() -> []:
 
 #endregion
 
+#region Cog
+class Formula1(commands.Cog):
+    def __init__(self, bot: commands.Bot):
+        self.bot = bot
+
+    stats_group = app_commands.Group(name='f1',
+                                     description='Get information about Formula 1.',
+                                     guild_ids=[settings.GUILD_ID])
+
+    @stats_group.command(name='driver', description='Get information about Formula 1 drivers.')
+    @app_commands.choices(driver=drivers())
+    async def get_driver_data(self, interaction: discord.Interaction, driver: Choice[str]):
+        await interaction.response.send_message(f'Information about {driver.name}: ', ephemeral=True)
+
+    @stats_group.command(name='grand-prix', description='Get information about Formula 1 Grand Prix events.')
+    async def get_grand_prix_data(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f'Here is your grand prix info: ', ephemeral=True)
+
+
+async def setup(bot: commands.Bot) -> None:
+    await bot.add_cog(Formula1(bot))
+#endregion
