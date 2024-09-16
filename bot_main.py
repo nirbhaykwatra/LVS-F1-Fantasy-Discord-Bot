@@ -64,6 +64,10 @@ async def on_ready():
     logger.info(f'Fantasy Manager is ready.')
     logger.info(f'{bot.user.name} connected to {bot.get_guild(guild.id)} (guild ID: {guild.id})')
 
+    for command in settings.CMDS_DIR.glob("*.py"):
+        if command.name != '__init__.py':
+            await bot.load_extension(f'commands.{command.name[:-3]}')
+
     try:
         await bot.tree.sync(guild=guild)
         logger.info(f'Command Tree synced.')
