@@ -89,7 +89,10 @@ async def dev(ctx):
 @dev.command(name='sync')
 @commands.has_role('Administrator')
 async def sync_tree(ctx):
-    await bot.tree.sync(guild=guild)
+    try:
+        await bot.tree.sync(guild=guild)
+    except Exception as e:
+        await ctx.send(f'Error syncing command tree: {e}')
     await ctx.send(f'Command Tree synced.')
     dev_logger.info(f'Command Tree synced.')
 
@@ -98,7 +101,10 @@ async def sync_tree(ctx):
 async def reload_ext(ctx):
     for command in settings.CMDS_DIR.glob("*.py"):
         if command.name != '__init__.py':
-            await bot.reload_extension(f'commands.{command.name[:-3]}')
+            try:
+                await bot.reload_extension(f'commands.{command.name[:-3]}')
+            except Exception as e:
+                await ctx.send(f'Error reloading {command.name[:-3]}: {e}')
             dev_logger.info(f"[COGS]    Reloaded '{command.name[:-3]}' cog.")
     await ctx.send(f'Extensions reloaded.')
     dev_logger.info(f'Extensions reloaded.')
