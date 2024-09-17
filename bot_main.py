@@ -86,14 +86,14 @@ async def dev(ctx):
     dev_logger.info(f"Invoked {ctx.subcommand_passed} subcommand.")
 
 
-@dev.command(name='sync-tree')
+@dev.command(name='sync')
 @commands.has_role('Administrator')
 async def sync_tree(ctx):
     await bot.tree.sync(guild=guild)
     await ctx.send(f'Command Tree synced.')
     dev_logger.info(f'Command Tree synced.')
 
-@dev.command(name='reload-extensions')
+@dev.command(name='reload')
 @commands.has_role('Administrator')
 async def reload_ext(ctx):
     for command in settings.CMDS_DIR.glob("*.py"):
