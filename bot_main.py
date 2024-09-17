@@ -53,8 +53,8 @@ async def setup_hook():
 
 @bot.event
 async def on_ready():
-    logger.info(f'Fantasy Manager is ready.')
     logger.info(f'{bot.user.name} connected to {bot.get_guild(guild.id)} (guild ID: {guild.id})')
+    logger.info(f'Fantasy Manager is ready.')
 
 
 @bot.event
