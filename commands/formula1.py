@@ -5,7 +5,10 @@ from discord.ext import commands
 import settings
 import fastf1
 from fastf1.ergast import Ergast
+from fastf1 import plotting
 import pandas as pd
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 #region Initialize FastF1
 logger = settings.create_logger('fantasy-fastf1')
