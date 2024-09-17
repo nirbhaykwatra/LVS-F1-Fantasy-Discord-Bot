@@ -112,3 +112,9 @@ Allow admins to view the teams of any players at any time.
 
 ### Archive League
 Allow admins to create an archived version of the current league
+
+### Schedule Guild Events
+Allow admins to populate guild events with the Formula 1 Calendar.
+
+### Bot Message Interactions
+Allow admins to control the bot user and send messages, reply and react, etc.
