@@ -16,6 +16,7 @@ CMDS_DIR = BASE_DIR/"commands"
 FASTF1_CACHE_DIR = BASE_DIR/"data"/"fastf1"/"cache"
 
 F1_IMAGE_BASE_URL = "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/"
+POSTGRES_BASE_URL = f'postgresql://{os.getenv('SQLUSER')}:{os.getenv('SQLPASS')}@{os.getenv('SQLHOST')}/lvs_fantasy'
 
 GUILD_ID = int(os.getenv('GUILD_ID'))
 TOKEN = os.getenv('TOKEN')
