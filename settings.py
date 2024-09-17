@@ -5,12 +5,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+#region Fantasy Data
+F1_SEASON = 2024
+F1_ROUND = 18
+#endregion
+
+#region Constants
 BASE_DIR = pathlib.Path(__file__).parent
 CMDS_DIR = BASE_DIR/"commands"
 FASTF1_CACHE_DIR = BASE_DIR/"data"/"fastf1"/"cache"
 
+F1_IMAGE_BASE_URL = "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/"
+
 GUILD_ID = int(os.getenv('GUILD_ID'))
 TOKEN = os.getenv('TOKEN')
+#endregion
 
 # Create logging format for console handler
 logFormat = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}',
