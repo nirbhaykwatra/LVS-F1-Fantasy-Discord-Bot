@@ -75,6 +75,8 @@ async def on_message(message):
 async def on_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
     if isinstance(error, app_commands.MissingRole):
         await interaction.response.send_message(f"You don't have permission to use that command!", ephemeral=True)
+    else:
+        logger.error(error.args)
 
 #region Developer message commands
 @bot.group()
