@@ -24,7 +24,7 @@ ff1session = fastf1.get_session(2024, 17, "R")
 def fastf1_run():
 
     print_var = ergast.get_driver_standings(2024).content[0]
-    logger.info(drivers())
+    logger.info(f"pass")
 
 #endregion
 
