@@ -18,6 +18,9 @@ fastf1.Cache.enable_cache(f'G:\\projects\\personal\\programming\\LVS-F1-Fantasy-
 #endregion
 
 #region FastF1 Data
+wdc_standings = ergast.get_driver_standings(datetime.now().year).content[0]
+ff1session = fastf1.get_session(2024, 17, "R")
+
 def fastf1_run():
 
     print_var = ergast.get_driver_standings(2024).content[0]
