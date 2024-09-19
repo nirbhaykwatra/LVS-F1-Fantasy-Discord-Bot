@@ -5,6 +5,7 @@ from sqlalchemy import delete
 from sqlalchemy.sql import text
 import pandas as pd
 import settings
+from utilities import fastf1util
 
 logger = settings.create_logger('sql')
 
