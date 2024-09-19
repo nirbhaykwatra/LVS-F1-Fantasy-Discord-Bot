@@ -42,3 +42,7 @@ def get_driver_position_delta(driver: str) -> [int]:
 
     return position_delta
 
+if __name__ == "__main__":
+    logger.info(f'Podiums: {get_driver_podiums("VER")}')
+    logger.info(f'Battle: {get_driver_teammate_battle("VER", settings.F1_SEASON)}')
+    logger.info(f'Position delta: {get_driver_position_delta("VER")}')
