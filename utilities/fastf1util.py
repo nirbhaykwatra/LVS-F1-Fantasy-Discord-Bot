@@ -10,6 +10,8 @@ import fastf1.core as core
 from fastf1.ergast import Ergast
 import pandas as pd
 
+logger = settings.create_logger('fastf1utils')
+
 #region Initialize FastF1
 fastf1.ergast.interface.BASE_URL = "https://api.jolpi.ca/ergast/f1"
 fastf1.Cache.enable_cache(settings.FASTF1_CACHE_DIR)
