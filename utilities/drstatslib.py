@@ -28,3 +28,17 @@ def get_driver_podiums(driver: str) -> int:
 
     return podiums
 
+# Get either the qualifying or race teammate battle between a driver and their teammate as a ratio.
+def get_driver_teammate_battle(driver: str, season: int) -> str:
+
+    battle = "0:0"
+
+    return battle
+
+# Get the positions gained and lost by a driver through the season.
+def get_driver_position_delta(driver: str) -> [int]:
+
+    position_delta = [0, 0]
+
+    return position_delta
+
