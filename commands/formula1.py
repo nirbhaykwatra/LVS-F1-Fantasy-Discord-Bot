@@ -4,6 +4,7 @@ from discord import app_commands
 from discord.ext import commands
 from utilities import fastf1util as f1
 from utilities import datautils as dt
+from utilities import drstatslib as stats
 from fastf1 import plotting
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
@@ -28,30 +29,20 @@ class Formula1(commands.Cog):
         logger.info(f"Command 'driver' executed with name {driver.name} (TLA: {driver.value})")
 
         #region Driver Info embed
-        driver_info_embed = discord.Embed(title=driver.name,
+        driver_info_embed = discord.Embed(title=f'{driver.name}',
                                           url=drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverUrl"][dt.drivers_choice_list().index(driver)],
-                                          description=f'{driver.value}',
+                                          description=f'#{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverNumber"][dt.drivers_choice_list().index(driver)]} - {driver.value}',
                                           colour=discord.Colour.from_str(plotting.get_driver_color(driver.name, f1.get_session(2024, 17, "R")))
                                           )
 
-        driver_info_embed.set_author(name=drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "constructorNames"][dt.drivers_choice_list().index(driver)][0])
+        driver_info_embed.set_author(name=f'{dt.get_full_team_name(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "constructorNames"][dt.drivers_choice_list().index(driver)][0])}')
 
-        driver_info_embed.add_field(name=drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverNumber"][dt.drivers_choice_list().index(driver)],
-                                    value="Driver Number",
-                                    inline=True)
         driver_info_embed.add_field(name=drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverNationality"][dt.drivers_choice_list().index(driver)],
                                     value="Nationality",
                                     inline=True)
-
         date = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "dateOfBirth"][dt.drivers_choice_list().index(driver)].to_pydatetime()
         driver_info_embed.add_field(name=date.strftime("%d %b %Y"),
                                     value="Date of Birth",
-                                    inline=True)
-        driver_info_embed.add_field(name=str(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "points"][dt.drivers_choice_list().index(driver)]),
-                                    value="Points",
-                                    inline=True)
-        driver_info_embed.add_field(name=f'P{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "positionText"][dt.drivers_choice_list().index(driver)]}',
-                                    value="Championship Standing",
                                     inline=True)
         age = relativedelta(datetime.now(), date).years
         driver_info_embed.add_field(name=age,
@@ -61,9 +52,6 @@ class Formula1(commands.Cog):
         driver_first_name = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "givenName"][dt.drivers_choice_list().index(driver)]
         driver_last_name = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "familyName"][dt.drivers_choice_list().index(driver)]
 
-        driver_profile = f"https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/{driver_first_name[0].upper()}/{driver_first_name[0:3].upper()}{driver_last_name[0:3].upper()}01_{driver_first_name}_{driver_last_name}/{driver_first_name[0:3]}{driver_last_name[0:3]}01.png"
-        logger.info(f'Driver URL: {driver_profile}')
-
         driver_info_embed.set_image(
             url=f"https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers"
                 f"/{driver_first_name[0].upper()}/{driver_first_name[0:3].upper()}{driver_last_name[0:3].upper()}01"
@@ -71,34 +59,29 @@ class Formula1(commands.Cog):
         #endregion
 
         #region Driver Statistics embed
-        driver_stats_embed = discord.Embed(title=f"{str(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "points"][dt.drivers_choice_list().index(driver)])} Points",
+        driver_stats_embed = discord.Embed(title=f"P{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "positionText"][dt.drivers_choice_list().index(driver)]} - {str(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "points"][dt.drivers_choice_list().index(driver)])} Points",
                                           colour=discord.Colour.from_str(
                                               plotting.get_driver_color(driver.value, f1.get_session(2024, 17, "R")))
                                           )
 
         driver_stats_embed.set_author(name=f"{driver.name}'s Season Summary")
 
-        driver_stats_embed.add_field(name=drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "wins"][dt.drivers_choice_list().index(driver)],
-                                    value="Wins",
-                                    inline=True)
+        driver_stats_embed.add_field(
+            name=f'{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "wins"][
+                      dt.drivers_choice_list().index(driver)]}',
+            value="Wins",
+            inline=True)
 
-        driver_stats_embed.add_field(name="Podiums",
-                                    value=f'',
-                                    inline=True)
-
-        driver_stats_embed.add_field(name="Championship Standing",
-                                    value=f'',
+        driver_stats_embed.add_field(name=stats.get_driver_podiums(driver.value),
+                                    value="Podiums",
                                     inline=True)
 
         driver_stats_embed.add_field(name="Against Teammate (Race)",
                                     value=f'',
-                                    inline=True)
+                                    inline=False)
 
         driver_stats_embed.add_field(name="Against Teammate (Qualifying)",
                                     value=f'',
-                                    inline=True)
-        driver_stats_embed.add_field(name="",
-                                    value=f'Constructor',
                                     inline=True)
         #endregion
 
