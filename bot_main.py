@@ -38,10 +38,13 @@ guild = discord.Object(id=settings.GUILD_ID)
 
 @bot.event
 async def setup_hook():
+
+    #region Load extensions
     for command in settings.CMDS_DIR.glob("*.py"):
         if command.name != '__init__.py':
             await bot.load_extension(f'commands.{command.name[:-3]}')
             logger.info(f"[COGS]    Loaded '{command.name[:-3]}' cog.")
+    #endregion
 
 
 @bot.event
