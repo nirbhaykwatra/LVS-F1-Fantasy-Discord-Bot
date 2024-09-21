@@ -110,4 +110,8 @@ async def reload_ext(ctx):
 
 # Run the bot. Note: This must be the last method to be called, owing to the fact that
 # it is blocking and will not execute anything after it.
-bot.run(settings.TOKEN)
+def run():
+    bot.run(settings.TOKEN)
+
+if __name__ == '__main__':
+    run()
