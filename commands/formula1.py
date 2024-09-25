@@ -1,3 +1,4 @@
+from dateutil.relativedelta import relativedelta
 import settings
 import discord
 from discord import app_commands
@@ -5,9 +6,9 @@ from discord.ext import commands
 from utilities import fastf1util as f1
 from utilities import datautils as dt
 from utilities import drstatslib as stats
+from utilities import postgresql as sql
 from fastf1 import plotting
 from datetime import datetime
-from dateutil.relativedelta import relativedelta
 
 logger = settings.create_logger('fantasy-fastf1')
 
@@ -72,7 +73,7 @@ class Formula1(commands.Cog):
             value="Wins",
             inline=True)
 
-        driver_stats_embed.add_field(name=stats.get_driver_podiums(driver.value),
+        driver_stats_embed.add_field(name=sql.drivers.loc[sql.drivers['driverCode'] == driver.value, 'podiums'].item(),
                                     value="Podiums",
                                     inline=True)
 
@@ -89,7 +90,10 @@ class Formula1(commands.Cog):
         await interaction.followup.send(f'', embeds=[driver_info_embed, driver_stats_embed], ephemeral=True)
 
     @stats_group.command(name='grand-prix', description='Get information about Formula 1 Grand Prix events.')
-    async def get_grand_prix_data(self, interaction: discord.Interaction):
+    @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
+    async def get_grand_prix_data(self, interaction: discord.Interaction, grand_prix: dt.Choice[str]):
+        #TODO: Create embed with grand prix circuit, country and start time information. If there are some interesting historical stats,
+        # those would be nice too.
         await interaction.response.send_message(f'Here is your grand prix info: ', ephemeral=True)
 
 
@@ -98,4 +102,5 @@ async def setup(bot: commands.Bot) -> None:
 #endregion
 
 if __name__ == '__main__':
+    logger.info(sql.drivers.loc[sql.drivers['driverCode'] == "VER", 'podiums'].item())
     pass
