@@ -48,6 +48,8 @@ def get_driver_info(season: Optional[Union[Literal['current'], int]] = None,
     return ergast.get_driver_info(season, round, circuit, constructor, driver, grid_position, results_position,
                     fastest_rank, status, result_type, auto_cast, limit, offset)
 
+event_schedule = fastf1.get_event_schedule(settings.F1_SEASON, include_testing=False)
+
 #endregion
 
 #region Session Data
