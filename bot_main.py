@@ -1,4 +1,6 @@
 #region Imports
+import traceback
+
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -72,7 +74,7 @@ async def on_error(interaction: discord.Interaction, error: app_commands.AppComm
     if isinstance(error, app_commands.MissingRole):
         await interaction.response.send_message(f"You don't have permission to use that command!", ephemeral=True)
     else:
-        logger.error(error.args)
+        logger.error(f"Error {error.args} with tb: \n {traceback.format_exc()}")
 
 #region Developer message commands
 @bot.group()
