@@ -7,6 +7,8 @@ from utilities import postgresql as sql
 logger = settings.create_logger('driver-stats')
 
 #region Retroactive methods
+# These methods should be used only to calculate statistics based on previous data and not on a per-race basis.
+
 # Get the number of podium positions the driver has been in.
 def get_driver_podiums(driver: str) -> int:
     podiums = 0
@@ -53,10 +55,10 @@ def get_driver_position_delta(driver: str) -> [int]:
 #region Per-Race methods
 
 def calculate_driver_stats(driver: str, round: int):
+
+    # Update driver podiums
     if did_driver_podium(driver, round):
         sql.drivers.loc[sql.drivers['driverCode'] == driver, 'podiums'] += 1
-        # Here, add 1 to the podium value of the drivers DataFrame, imported from the database at launch
-        pass
 
 def did_driver_podium(driver: str, round: int) -> bool:
     try:
@@ -87,6 +89,7 @@ def calculate_teammate_battle(driver: str):
 #endregion
 
 if __name__ == "__main__":
-    logger.info(f'Podiums: {get_driver_podiums("COL")}')
-    logger.info(f'Battle: {get_driver_teammate_battle("VER", settings.F1_SEASON)}')
-    logger.info(f'Position delta: {get_driver_position_delta("VER")}')
+    pass
+    # logger.info(f'Podiums: {get_driver_podiums("NOR")}')
+    # logger.info(f'Battle: {get_driver_teammate_battle("VER", settings.F1_SEASON)}')
+    # logger.info(f'Position delta: {get_driver_position_delta("VER")}')
