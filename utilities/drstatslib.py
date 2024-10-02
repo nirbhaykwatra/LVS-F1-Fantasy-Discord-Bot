@@ -18,10 +18,15 @@ def get_driver_podiums(driver: str) -> int:
             result = f1.ergast.get_race_results(settings.F1_SEASON, round).content[0]
         except IndexError as e:
             result = None
-            logger.warning(f'Round {round} has no results.')
+            logger.warning(f'Round {round} has no race results.')
+
+        try:
+            sprint_result = f1.ergast.get_sprint_results(settings.F1_SEASON, round).content[0]
+        except IndexError as e:
+            sprint_result = None
+            logger.warning(f'Round {round} has no sprint results.')
 
         if result is not None:
-
             try:
                 position = result.loc[result['driverCode'] == driver, 'position'].item()
 
@@ -31,12 +36,26 @@ def get_driver_podiums(driver: str) -> int:
                 pass
 
             try:
-                logger.info(f'{driver} position in round {round}: {position}')
+                logger.info(f'{driver} position in race round {round}: {position}')
             except UnboundLocalError as e:
-                logger.warning(f"Could not find driver {driver} in round {round}.")
+                logger.warning(f"Could not find driver {driver} in race round {round}.")
 
+            if sprint_result is not None:
+                try:
+                    sprint_position = result.loc[result['driverCode'] == driver, 'position'].item()
+
+                    if sprint_position <= 3:
+                        podiums += 1
+                except ValueError or UnboundLocalError as e:
+                    pass
+
+                try:
+                    logger.info(f'{driver} position in sprint round {round}: {sprint_position}')
+                except UnboundLocalError as e:
+                    logger.warning(f"Could not find driver {driver} in sprint round {round}.")
 
     return podiums
+
 # Get either the qualifying or race teammate battle between a driver and their teammate as a ratio.
 def get_driver_teammate_battle(driver: str, season: int) -> str:
 
@@ -65,8 +84,14 @@ def did_driver_podium(driver: str, round: int) -> bool:
         result = f1.ergast.get_race_results(settings.F1_SEASON, round).content[0]
     except IndexError as e:
         result = None
-        logger.warning(f'Round {round} has no results yet. Try again later!')
+        logger.warning(f'Round {round} has no race results yet. Try again later!')
         return False
+
+    try:
+        sprint_result = f1.ergast.get_sprint_results(settings.F1_SEASON, round).content[0]
+    except IndexError as e:
+        sprint_result = None
+        logger.warning(f'Round {round} has no sprint results.')
 
     if result is not None:
         try:
@@ -89,7 +114,7 @@ def calculate_teammate_battle(driver: str):
 #endregion
 
 if __name__ == "__main__":
-    pass
-    # logger.info(f'Podiums: {get_driver_podiums("NOR")}')
+    logger.info(f'Podiums: {get_driver_podiums("VER")}')
     # logger.info(f'Battle: {get_driver_teammate_battle("VER", settings.F1_SEASON)}')
     # logger.info(f'Position delta: {get_driver_position_delta("VER")}')
+    pass
