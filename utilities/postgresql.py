@@ -251,6 +251,5 @@ def write_to_player_database(table: str, data: pd.DataFrame, if_exists: Literal[
 #endregion
 
 if __name__ == '__main__':
-    #populate_results()
-    update_player_result(867434834120540180, 17, 57)
+    #update_player_result(867434834120540180, 17, 57)
     pass
