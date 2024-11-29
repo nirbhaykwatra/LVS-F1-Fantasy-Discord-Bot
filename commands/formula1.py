@@ -24,24 +24,24 @@ class Formula1(commands.Cog):
                                      guild_ids=[settings.GUILD_ID])
 
     @stats_group.command(name='driver', description='Get information about Formula 1 drivers.')
-    @app_commands.choices(driver=dt.drivers_choice_list())
+    @app_commands.choices(driver=dt.drivers_choice_list(info=True))
     async def get_driver_data(self, interaction: discord.Interaction, driver: dt.Choice[str]):
 
         logger.info(f"Command 'driver' executed with name {driver.name} (TLA: {driver.value})")
 
         #region Driver Info embed
         driver_info_embed = discord.Embed(title=f'{driver.name}',
-                                          url=drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverUrl"][dt.drivers_choice_list().index(driver)],
-                                          description=f'#{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverNumber"][dt.drivers_choice_list().index(driver)]} - {driver.value}',
-                                          colour=discord.Colour.from_str(plotting.get_driver_color(driver.name, f1.get_session(2024, 17, "R")))
+                                          url=drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverUrl"][dt.drivers_choice_list(info=True).index(driver)],
+                                          description=f'#{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverNumber"][dt.drivers_choice_list(info=True).index(driver)]} - {driver.value}',
+                                          colour=discord.Colour.from_str(str(sql.drivers.loc[sql.drivers["driverCode"] == driver.value, "drivercolor"].item()))
                                           )
 
-        driver_info_embed.set_author(name=f'{dt.get_full_team_name(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "constructorNames"][dt.drivers_choice_list().index(driver)][0])}')
+        driver_info_embed.set_author(name=f'{dt.get_full_team_name(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "constructorNames"][dt.drivers_choice_list(info=True).index(driver)][0])}')
 
-        driver_info_embed.add_field(name=drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverNationality"][dt.drivers_choice_list().index(driver)],
+        driver_info_embed.add_field(name=drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverNationality"][dt.drivers_choice_list(info=True).index(driver)],
                                     value="Nationality",
                                     inline=True)
-        date = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "dateOfBirth"][dt.drivers_choice_list().index(driver)].to_pydatetime()
+        date = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "dateOfBirth"][dt.drivers_choice_list(info=True).index(driver)].to_pydatetime()
         driver_info_embed.add_field(name=date.strftime("%d %b %Y"),
                                     value="Date of Birth",
                                     inline=True)
@@ -50,8 +50,8 @@ class Formula1(commands.Cog):
                                     value="Age",
                                     inline=True)
 
-        driver_first_name = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "givenName"][dt.drivers_choice_list().index(driver)]
-        driver_last_name = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "familyName"][dt.drivers_choice_list().index(driver)]
+        driver_first_name = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "givenName"][dt.drivers_choice_list(info=True).index(driver)]
+        driver_last_name = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "familyName"][dt.drivers_choice_list(info=True).index(driver)]
 
         driver_info_embed.set_image(
             url=f"https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers"
@@ -60,16 +60,16 @@ class Formula1(commands.Cog):
         #endregion
 
         #region Driver Statistics embed
-        driver_stats_embed = discord.Embed(title=f"P{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "positionText"][dt.drivers_choice_list().index(driver)]} - {str(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "points"][dt.drivers_choice_list().index(driver)])} Points",
-                                          colour=discord.Colour.from_str(
-                                              plotting.get_driver_color(driver.value, f1.get_session(2024, 17, "R")))
+
+        driver_stats_embed = discord.Embed(title=f"P{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "positionText"][dt.drivers_choice_list(info=True).index(driver)]} - {str(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "points"][dt.drivers_choice_list(info=True).index(driver)])} Points",
+                                          colour=discord.Colour.from_str(str(sql.drivers.loc[sql.drivers["driverCode"] == driver.value, "drivercolor"].item()))
                                           )
 
         driver_stats_embed.set_author(name=f"{driver.name}'s Season Summary")
 
         driver_stats_embed.add_field(
             name=f'{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "wins"][
-                      dt.drivers_choice_list().index(driver)]}',
+                      dt.drivers_choice_list(info=True).index(driver)]}',
             value="Wins",
             inline=True)
 
