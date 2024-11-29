@@ -44,7 +44,7 @@ def timezone_choice_list() -> []:
         Choice(name="Indian Standard Time", value="Asia/Kolkata")
             ]
 
-def drivers_choice_list() -> []:
+def drivers_choice_list(info: bool = False) -> []:
     drivers_list = []
     driver_standings = f1.get_drivers_standings(datetime.now().year)
     family_names = driver_standings.familyName
@@ -55,10 +55,13 @@ def drivers_choice_list() -> []:
         last_name = family_names.get(driver)
         first_name = given_names.get(driver)
         driver_code = driver_codes.get(driver)
-        if driver_code in exclude_drivers:
-            continue
+        if info is False:
+            if driver_code in exclude_drivers:
+                continue
 
-        drivers_list.append(Choice(name=f"{first_name} {last_name}", value=driver_code))
+            drivers_list.append(Choice(name=f"{first_name} {last_name}", value=driver_code))
+        else:
+            drivers_list.append(Choice(name=f"{first_name} {last_name}", value=driver_code))
 
     return drivers_list
 
