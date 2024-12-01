@@ -47,6 +47,14 @@ Allow players to view a detailed points table, showing the points scored by ever
 ### Display Season Statistics
 Allow players to view detailed information about any Grand Prix event, driver, constructor or other player.
 
+### Automatic Reminders to Players
+Allow players to opt into receiving automatic draft reminders via either Discord, WhatsApp or email.
+
+**Security** - User information such as contact numbers *MUST* be stored using industry standard encryption and protection practices.
+Players must be informed of exactly where and how their information is stored and *MUST* be given complete control over revoking their information at any time.
+
+In the case of any external communication services, a strict and encrypted multi-factor authentication system must be implemented.
+
 #### List of Season Statistics
 - **Grand Prix Weekends**
     - Results for all sessions
