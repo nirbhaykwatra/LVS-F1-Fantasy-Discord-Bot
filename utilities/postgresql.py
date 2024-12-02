@@ -160,6 +160,7 @@ def populate_results():
     logger.info(f"Results: {results}")
 
     for player in players.userid:
+        # TODO: Add rounds to series using loop, with the number of iterations being the number of rounds from jolpica. DO NOT hard code the number of rounds.
         result_record = pd.Series({
             'userid': player,
             'username': players.loc[players['userid'] == player, 'username'].item(),
