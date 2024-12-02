@@ -201,6 +201,7 @@ def update_player_result(user_id: int, round: int, points: float):
         logger.info(f"Updated {players.loc[players['userid'] == user_id, 'username'].item()}'s results: {results}")
     else:
         try:
+            # TODO: Add rounds to series using loop, with the number of iterations being the number of rounds from jolpica. DO NOT hard code the number of rounds.
             result_record = pd.Series({
                 'userid': user_id,
                 'username': players.loc[players['userid'] == user_id, 'username'].item(),
