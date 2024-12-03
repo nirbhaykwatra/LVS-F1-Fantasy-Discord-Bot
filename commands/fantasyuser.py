@@ -25,6 +25,8 @@ class FantasyUser(commands.Cog):
             await interaction.response.send_message(f'{interaction.user.name} is already registered!', ephemeral=True)
             return
 
+        await interaction.response.defer(ephemeral=True)
+
         #region Create new player Series
         player_record = pd.Series({'username': interaction.user.name,
                          'userid': interaction.user.id,
@@ -67,7 +69,8 @@ class FantasyUser(commands.Cog):
         #endregion
         sql.create_player_table(interaction.user.id)
         sql.write_to_database('players', sql.players)
-        await interaction.response.send_message(f'Registered player {interaction.user.name}!', embed=embed, ephemeral=True)
+
+        await interaction.followup.send(f'Registered player {interaction.user.name}!', embed=embed, ephemeral=True)
 
     @app_commands.command(name='draft', description='Draft your team!')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
@@ -82,6 +85,8 @@ class FantasyUser(commands.Cog):
                     driver3: Choice[str],
                     wildcard: Choice[str],
                     team: Choice[str]):
+
+        await interaction.response.defer(ephemeral=True)
         # TODO: Implement exhaustion
 
         sql.draft_to_table(
@@ -134,11 +139,14 @@ class FantasyUser(commands.Cog):
                         value="Constructor", inline=True)
         #endregion
 
-        await interaction.response.send_message(f"",embed=embed, ephemeral=True)
+        await interaction.followup.send(f"",embed=embed, ephemeral=True)
 
     @app_commands.command(name='team', description='View your team.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def team(self, interaction: discord.Interaction):
+
+        await interaction.response.defer(ephemeral=True)
+
         #TODO: Implement showing team by current round and round choice.
         #       Also implement behavior for the current round's team being undrafted.
         # Instead of using setting.F1_ROUND directly, use a proxy variable to change the round depending on
@@ -188,7 +196,8 @@ class FantasyUser(commands.Cog):
         embed.add_field(name=f"{em_team}",
                         value="Constructor", inline=True)
         # endregion
-        await interaction.response.send_message(f'',embed=embed, ephemeral=True)
+
+        await interaction.followup.send(f'',embed=embed, ephemeral=True)
 
     @app_commands.command(name='exhausted', description='View your team exhaustions.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
