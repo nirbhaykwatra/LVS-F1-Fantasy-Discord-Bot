@@ -43,6 +43,11 @@ class FantasyDebug(commands.Cog):
 
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    @debug_group.command(name='remove-season-events', description='Remove all season events from server calendar.')
+    @app_commands.checks.has_role('Administrator')
+    async def remove_season_events(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"remove-season-events command executed.", ephemeral=True)
+
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyDebug(bot))
