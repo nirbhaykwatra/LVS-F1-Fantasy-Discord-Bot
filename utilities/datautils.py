@@ -2,7 +2,7 @@
 import settings
 from utilities import fastf1util as f1
 from discord.app_commands import Choice
-from datetime import datetime
+from datetime import datetime, timedelta
 import pandas as pd
 import json
 import os
@@ -24,6 +24,8 @@ team_names_full = {
     "Alpine F1 Team":   "BWT Alpine F1 Team",
     "Sauber"    :   "Stake F1 Team Kick Sauber"
 }
+
+td = timedelta()
 
 with open(f"{os.getcwd()}\\data\\drivers\\excluded_drivers.json") as file:
     exclude_drivers = json.load(file)
@@ -82,7 +84,7 @@ def grand_prix_choice_list() -> []:
     for grand_prix in grand_prix_names.EventName:
         grand_prixs_list.append(Choice
             (
-            name=grand_prix,
+            name=f"{grand_prix}",
             value=str(grand_prix_names.loc[grand_prix_names['EventName'] == grand_prix, 'RoundNumber'].item())
             )
         )
@@ -90,5 +92,5 @@ def grand_prix_choice_list() -> []:
     return grand_prixs_list
 
 if __name__ == '__main__':
-    logger.info(f"{constructor_choice_list()}")
+    logger.info(f"{grand_prix_choice_list()}")
     pass
