@@ -44,6 +44,7 @@ def retrieve_player_table(user_id: int) -> pd.DataFrame:
     return player_table
 
 def draft_to_table(user_id: int, round: int, driver1: str, driver2: str, driver3: str, wildcard: str, team: str):
+
     draft_df = retrieve_player_table(user_id)
 
     draft_series = pd.Series({
@@ -245,11 +246,11 @@ def update_player_result(user_id: int, round: int, points: float):
 #region Utilities
 def write_to_database(table: str, data: pd.DataFrame, if_exists: Literal["fail", "replace", "append"] = "replace", index: bool = False):
     result = data.to_sql(table, conn, if_exists=if_exists, index=index)
-    logger.info(f'Wrote to fantasy database: {result.real}')
+    logger.info(f'Wrote to fantasy database: {data.info}')
 
 def write_to_player_database(table: str, data: pd.DataFrame, if_exists: Literal["fail", "replace", "append"] = "replace", index: bool = False):
     result = data.to_sql(table, player_conn, if_exists=if_exists, index=index)
-    logger.info(f'Wrote to player database: {result.real}')
+    logger.info(f'Wrote to player database: {data.info}')
 #endregion
 
 if __name__ == '__main__':
