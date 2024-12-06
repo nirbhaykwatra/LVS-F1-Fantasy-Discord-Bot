@@ -78,7 +78,8 @@ class FantasyUser(commands.Cog):
                           driver2=dt.drivers_choice_list(),
                           driver3=dt.drivers_choice_list(),
                           wildcard=dt.drivers_choice_list(),
-                          team=dt.constructor_choice_list())
+                          team=dt.constructor_choice_list(),
+                          )
     async def draft(self, interaction: discord.Interaction,
                     driver1: Choice[str],
                     driver2: Choice[str],
@@ -87,11 +88,27 @@ class FantasyUser(commands.Cog):
                     team: Choice[str]):
 
         await interaction.response.defer(ephemeral=True)
-        # TODO: Implement exhaustion
+        # TODO: Implement exhaustion, implement response if user is not registered
+
+        if not any(sql.players.userid == interaction.user.id):
+
+            unregistered_embed = discord.Embed(
+                title=f"You are not registered!",
+                description=f" Please register to draft!",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+            return
+
+
+        grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
+                            value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
+                            )
 
         sql.draft_to_table(
             user_id=interaction.user.id,
-            round=settings.F1_ROUND,
+            round=int(grand_prix.value),
             driver1=driver1.value,
             driver2=driver2.value,
             driver3=driver3.value,
@@ -103,11 +120,11 @@ class FantasyUser(commands.Cog):
         player_table = sql.retrieve_player_table(interaction.user.id)
         driver_info = f1.get_driver_info(settings.F1_SEASON)
 
-        tla_driver1 = player_table.loc[player_table['round'] == settings.F1_ROUND, 'driver1'].item()
-        tla_driver2 = player_table.loc[player_table['round'] == settings.F1_ROUND, 'driver2'].item()
-        tla_driver3 = player_table.loc[player_table['round'] == settings.F1_ROUND, 'driver3'].item()
-        tla_wildcard = player_table.loc[player_table['round'] == settings.F1_ROUND, 'wildcard'].item()
-        short_team = player_table.loc[player_table['round'] == settings.F1_ROUND, 'constructor'].item()
+        tla_driver1 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item()
+        tla_driver2 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver2'].item()
+        tla_driver3 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver3'].item()
+        tla_wildcard = player_table.loc[player_table['round'] == int(grand_prix.value), 'wildcard'].item()
+        short_team = player_table.loc[player_table['round'] == int(grand_prix.value), 'constructor'].item()
 
         em_driver1 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'givenName'].item()} "
                       f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'familyName'].item()}")
@@ -120,8 +137,8 @@ class FantasyUser(commands.Cog):
         em_team = dt.team_names_full[short_team]
 
         embed = discord.Embed(
-            title=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'teamname'].item()} ([Grand Prix Name]) ",
-            description=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'teammotto'].item()}",
+            title=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'teamname'].item()}",
+            description=f"{grand_prix.name}",
             colour=settings.EMBED_COLOR)
 
         embed.set_author(name=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'username'].item()}")
