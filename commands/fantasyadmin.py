@@ -117,5 +117,103 @@ class FantasyAdmin(commands.Cog):
         dt.write_excluded_drivers()
         logger.info(f'Excluded drivers {dt.exclude_drivers}.')
 
+    @admin_group.command(name='draft', description='Draft team for any user or grand prix.')
+    @app_commands.checks.has_role('Administrator')
+    @app_commands.choices(driver1=dt.drivers_choice_list(),
+                          driver2=dt.drivers_choice_list(),
+                          driver3=dt.drivers_choice_list(),
+                          wildcard=dt.drivers_choice_list(),
+                          team=dt.constructor_choice_list(),
+                          grand_prix=dt.grand_prix_choice_list())
+    async def draft(self, interaction: discord.Interaction,
+                    user: discord.User,
+                    driver1: Choice[str],
+                    driver2: Choice[str],
+                    driver3: Choice[str],
+                    wildcard: Choice[str],
+                    team: Choice[str],
+                    grand_prix: Choice[str]):
+
+        await interaction.response.defer(ephemeral=True)
+        # TODO: Implement exhaustion
+
+        if not any(sql.players.userid == user.id):
+            unregistered_embed = discord.Embed(
+                title=f"{user.name} is not registered! ",
+                description=f"Please register to draft!",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+            return
+
+        sql.draft_to_table(
+            user_id=user.id,
+            round=int(grand_prix.value),
+            driver1=driver1.value,
+            driver2=driver2.value,
+            driver3=driver3.value,
+            wildcard=wildcard.value,
+            team=team.value
+        )
+
+        # region Team Embed
+        player_table = sql.retrieve_player_table(user.id)
+        driver_info = f1.get_driver_info(settings.F1_SEASON)
+
+        tla_driver1 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item()
+        tla_driver2 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver2'].item()
+        tla_driver3 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver3'].item()
+        tla_wildcard = player_table.loc[player_table['round'] == int(grand_prix.value), 'wildcard'].item()
+        short_team = player_table.loc[player_table['round'] == int(grand_prix.value), 'constructor'].item()
+
+        em_driver1 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'givenName'].item()} "
+                      f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'familyName'].item()}")
+        em_driver2 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'givenName'].item()} "
+                      f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'familyName'].item()}")
+        em_driver3 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'givenName'].item()} "
+                      f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'familyName'].item()}")
+        em_wildcard = (f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'givenName'].item()} "
+                       f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'familyName'].item()}")
+        em_team = dt.team_names_full[short_team]
+
+        embed = discord.Embed(
+            title=f"{sql.players.loc[sql.players['userid'] == user.id, 'teamname'].item()}",
+            description=f"{grand_prix.name}",
+            colour=settings.EMBED_COLOR)
+
+        embed.set_author(name=f"{sql.players.loc[sql.players['userid'] == user.id, 'username'].item()}")
+        embed.set_thumbnail(url=user.display_avatar.url)
+
+        embed.add_field(name=f"{em_driver1}",
+                        value="Driver 1", inline=True)
+        embed.add_field(name=f"{em_driver2}",
+                        value="Driver 2", inline=True)
+        embed.add_field(name=f"{em_driver3}",
+                        value="Driver 3", inline=True)
+        embed.add_field(name=f"{em_wildcard}",
+                        value="Wildcard", inline=True)
+        embed.add_field(name=f"{em_team}",
+                        value="Constructor", inline=True)
+        # endregion
+
+        await interaction.followup.send(f"", embed=embed, ephemeral=True)
+
+    @admin_group.command(name='clear-team', description='Clear the drafted team for any player, in any round.')
+    @app_commands.checks.has_role('Administrator')
+    @app_commands.choices(
+        grand_prix=dt.grand_prix_choice_list())
+    async def clear_team(self, interaction: discord.Interaction, user: discord.User, grand_prix: Choice[str]):
+
+        await interaction.response.defer()
+
+        embed = discord.Embed(title=f"Removed {user.name}'s team for {grand_prix.name}", colour=settings.EMBED_COLOR)
+        player_table = sql.retrieve_player_table(user.id)
+        player_table = player_table[player_table['round'] != int(grand_prix.value)]
+        sql.write_to_player_database(str(user.id), player_table)
+        sql.import_players_table()
+
+        await interaction.followup.send(f"", ephemeral=True, embed=embed)
+
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyAdmin(bot))
