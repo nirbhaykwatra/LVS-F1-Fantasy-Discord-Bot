@@ -143,61 +143,113 @@ class FantasyUser(commands.Cog):
 
     @app_commands.command(name='team', description='View your team.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
-    async def team(self, interaction: discord.Interaction):
+    @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
+    async def team(self, interaction: discord.Interaction, grand_prix: Choice[str] | None, user: discord.User = None):
 
         await interaction.response.defer(ephemeral=True)
 
-        #TODO: Implement showing team by current round and round choice.
-        #       Also implement behavior for the current round's team being undrafted.
-        # Instead of using setting.F1_ROUND directly, use a proxy variable to change the round depending on
-        # whether the round can be retrieved from the player table. For example:
-        # if any(player_table.round == settings.F1_ROUND):
-        #     draft_round = settings.F1_ROUND
-        # else:
-        #     draft_round = settings.F1_ROUND - 1
-        # then, replace all instances of settings.F1_ROUND with draft_round.
+        if grand_prix is None:
+            grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
+                                value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
+                                )
 
-        # region Team Embed
-        player_table = sql.retrieve_player_table(interaction.user.id)
+        if user is None:
+            user = interaction.user
+
+        player_table = sql.retrieve_player_table(user.id)
         driver_info = f1.get_driver_info(settings.F1_SEASON)
 
-        tla_driver1 = player_table.loc[player_table['round'] == settings.F1_ROUND, 'driver1'].item()
-        tla_driver2 = player_table.loc[player_table['round'] == settings.F1_ROUND, 'driver2'].item()
-        tla_driver3 = player_table.loc[player_table['round'] == settings.F1_ROUND, 'driver3'].item()
-        tla_wildcard = player_table.loc[player_table['round'] == settings.F1_ROUND, 'wildcard'].item()
-        short_team = player_table.loc[player_table['round'] == settings.F1_ROUND, 'constructor'].item()
-
-        em_driver1 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'givenName'].item()} "
-                      f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'familyName'].item()}")
-        em_driver2 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'givenName'].item()} "
-                      f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'familyName'].item()}")
-        em_driver3 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'givenName'].item()} "
-                      f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'familyName'].item()}")
-        em_wildcard = (f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'givenName'].item()} "
-                       f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'familyName'].item()}")
-        em_team = dt.team_names_full[short_team]
-
+        # region Team Embed
         embed = discord.Embed(
-            title=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'teamname'].item()} ([Grand Prix Name])",
-            description=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'teammotto'].item()}",
+            title=f"{sql.players.loc[sql.players['userid'] == user.id, 'teamname'].item()}",
+            description=f"{grand_prix.name}",
             colour=settings.EMBED_COLOR)
 
-        embed.set_author(name=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'username'].item()} ")
-        embed.set_thumbnail(url=interaction.user.display_avatar.url)
+        if any(player_table['round'] == int(grand_prix.value)):
 
-        embed.add_field(name=f"{em_driver1}",
-                        value="Driver 1", inline=True)
-        embed.add_field(name=f"{em_driver2}",
-                        value="Driver 2", inline=True)
-        embed.add_field(name=f"{em_driver3}",
-                        value="Driver 3", inline=True)
-        embed.add_field(name=f"{em_wildcard}",
-                        value="Wildcard", inline=True)
-        embed.add_field(name=f"{em_team}",
-                        value="Constructor", inline=True)
-        # endregion
+            tla_driver1 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item()
+            tla_driver2 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver2'].item()
+            tla_driver3 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver3'].item()
+            tla_wildcard = player_table.loc[player_table['round'] == int(grand_prix.value), 'wildcard'].item()
+            short_team = player_table.loc[player_table['round'] == int(grand_prix.value), 'constructor'].item()
 
-        await interaction.followup.send(f'',embed=embed, ephemeral=True)
+            em_driver1 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'givenName'].item()} "
+                          f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'familyName'].item()}")
+            em_driver2 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'givenName'].item()} "
+                          f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'familyName'].item()}")
+            em_driver3 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'givenName'].item()} "
+                          f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'familyName'].item()}")
+            em_wildcard = (f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'givenName'].item()} "
+                           f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'familyName'].item()}")
+            em_team = dt.team_names_full[short_team]
+
+            embed.set_author(name=f"{sql.players.loc[sql.players['userid'] == user.id, 'username'].item()} ")
+            embed.set_thumbnail(url=user.display_avatar.url)
+            embed.add_field(name=f"{em_driver1}",
+                            value="Driver 1", inline=True)
+            embed.add_field(name=f"{em_driver2}",
+                            value="Driver 2", inline=True)
+            embed.add_field(name=f"{em_driver3}",
+                            value="Driver 3", inline=True)
+            embed.add_field(name=f"{em_wildcard}",
+                            value="Wildcard", inline=True)
+            embed.add_field(name=f"{em_team}",
+                            value="Constructor", inline=True)
+            # endregion
+
+            await interaction.followup.send(f'',embed=embed, ephemeral=True)
+
+        else:
+            # region Team Embed
+            if any(player_table['round'] == (int(grand_prix.value) - 1)):
+
+                embed_previous = discord.Embed(
+                    title=f"There is no team set for round {grand_prix.value}",
+                    description=f"Showing the previous round's team.",
+                    colour=settings.EMBED_COLOR)
+
+                tla_driver1 = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'driver1'].item()
+                tla_driver2 = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'driver2'].item()
+                tla_driver3 = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'driver3'].item()
+                tla_wildcard = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'wildcard'].item()
+                short_team = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'constructor'].item()
+
+                em_driver1 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'givenName'].item()} "
+                              f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'familyName'].item()}")
+                em_driver2 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'givenName'].item()} "
+                              f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'familyName'].item()}")
+                em_driver3 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'givenName'].item()} "
+                              f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'familyName'].item()}")
+                em_wildcard = (f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'givenName'].item()} "
+                               f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'familyName'].item()}")
+                em_team = dt.team_names_full[short_team]
+
+                embed_previous.set_author(
+                    name=f"{sql.players.loc[sql.players['userid'] == user.id, 'username'].item()} ")
+                embed_previous.set_thumbnail(url=user.display_avatar.url)
+                embed_previous.add_field(name=f"{em_driver1}",
+                                value="Driver 1", inline=True)
+                embed_previous.add_field(name=f"{em_driver2}",
+                                value="Driver 2", inline=True)
+                embed_previous.add_field(name=f"{em_driver3}",
+                                value="Driver 3", inline=True)
+                embed_previous.add_field(name=f"{em_wildcard}",
+                                value="Wildcard", inline=True)
+                embed_previous.add_field(name=f"{em_team}",
+                                value="Constructor", inline=True)
+                # endregion
+
+                await interaction.followup.send(f'', embed=embed_previous, ephemeral=True)
+            else:
+                embed_fallback = discord.Embed(
+                    title=f"{sql.players.loc[sql.players['userid'] == user.id, 'teamname'].item()}",
+                    description=f"There is no team set for round {grand_prix.value} or the previous round."
+                )
+                embed_fallback.set_author(name=str(user.name))
+                embed_fallback.set_thumbnail(url=user.display_avatar.url)
+
+                await interaction.followup.send(f'', embed=embed_fallback, ephemeral=True)
+
 
     @app_commands.command(name='exhausted', description='View your team exhaustions.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
