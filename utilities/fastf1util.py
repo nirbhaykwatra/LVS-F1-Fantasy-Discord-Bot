@@ -62,3 +62,6 @@ def get_session(year: int,
 ) -> core.Session:
     return fastf1.get_session(year, gp, identifier, backend=backend, force_ergast=force_ergast )
 #endregion
+
+if __name__=="__main__":
+    logger.info(event_schedule)
