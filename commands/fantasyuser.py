@@ -39,11 +39,11 @@ class FantasyUser(commands.Cog):
         logger.info(f"Registered player {interaction.user.name}.")
 
         #region Player Profile embed
-        embed = discord.Embed(title=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'username'].item()} ",
+        embed = discord.Embed(title=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'teamname'].item()}",
                               description=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'teammotto'].item()}",
                               colour=settings.EMBED_COLOR)
 
-        embed.set_author(name=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'teamname'].item()}")
+        embed.set_author(name=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'username'].item()}")
 
         user_points = sql.players.loc[sql.players['userid'] == interaction.user.id, 'points']
         if user_points.dropna().empty:
@@ -55,7 +55,7 @@ class FantasyUser(commands.Cog):
                             value=f"Season Points",
                             inline=True)
 
-        user_row = sql.results.loc[sql.results['userid'] == interaction.user.id].drop(labels=['userid', 'username','teamname'],
+        user_row = sql.results.loc[sql.results['userid'] == interaction.user.id].drop(labels=['userid','username','teamname','teammotto','timezone'],
                                                                           axis=1).squeeze()
         if user_row.empty:
             embed.add_field(name=f"0",
@@ -69,6 +69,7 @@ class FantasyUser(commands.Cog):
         #endregion
         sql.create_player_table(interaction.user.id)
         sql.write_to_database('players', sql.players)
+        sql.import_players_table()
 
         await interaction.followup.send(f'Registered player {interaction.user.name}!', embed=embed, ephemeral=True)
 
