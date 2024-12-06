@@ -46,7 +46,19 @@ class FantasyDebug(commands.Cog):
     @debug_group.command(name='remove-season-events', description='Remove all season events from server calendar.')
     @app_commands.checks.has_role('Administrator')
     async def remove_season_events(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f"remove-season-events command executed.", ephemeral=True)
+
+        guild = self.bot.get_guild(settings.GUILD_ID)
+
+        if guild is not None:
+
+            events = guild.scheduled_events
+
+            for event in events:
+                await event.delete()
+
+            await interaction.response.send_message(f"Season events removed.", ephemeral=True)
+
+
 
 
 async def setup(bot: commands.Bot) -> None:
