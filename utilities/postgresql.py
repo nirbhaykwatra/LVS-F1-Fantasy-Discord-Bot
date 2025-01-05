@@ -119,7 +119,8 @@ teams = import_teams_table()
 #region Formula 1 Data
 
 def update_driver_statistics():
-
+    # TODO: Add except to handle retrieval of driver standings if driver standings are not yet populated.
+    #  For example, if the season has not begun but the year has incremented; if the driver standings for 2025 are not available, retrieve for 2024
     standings = f1.get_drivers_standings(settings.F1_SEASON)
 
     #region Update columns

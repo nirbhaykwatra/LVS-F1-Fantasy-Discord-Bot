@@ -119,6 +119,8 @@ class FantasyUser(commands.Cog):
 
         #region Team Embed
         player_table = sql.retrieve_player_table(interaction.user.id)
+        # TODO: Add except to handle retrieval of driver info if driver info is not yet populated.
+        #  For example, if the season has not begun but the year has incremented; if the driver info for 2025 is not available, retrieve for 2024
         driver_info = f1.get_driver_info(settings.F1_SEASON)
 
         tla_driver1 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item()
@@ -175,6 +177,8 @@ class FantasyUser(commands.Cog):
             user = interaction.user
 
         player_table = sql.retrieve_player_table(user.id)
+        # TODO: Add except to handle retrieval of driver info if driver info is not yet populated.
+        #  For example, if the season has not begun but the year has incremented; if the driver info for 2025 is not available, retrieve for 2024
         driver_info = f1.get_driver_info(settings.F1_SEASON)
 
         # region Team Embed

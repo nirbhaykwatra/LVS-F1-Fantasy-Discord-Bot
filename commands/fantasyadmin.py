@@ -52,6 +52,8 @@ class FantasyAdmin(commands.Cog):
     @admin_group.command(name='update-driver-stats', description='Update driver statistics, as of the given round.')
     @app_commands.checks.has_role('Administrator')
     async def update_driver_stats(self, interaction: discord.Interaction, round: int):
+        #TODO: Add except to handle retrieval of driver standings if driver standings are not yet populated.
+        # For example, if the season has not begun but the year has incremented; if the driver standings for 2025 are not available, retrieve for 2024
         try:
             for driver in f1.get_drivers_standings(settings.F1_SEASON, round)['driverCode']:
                 stats.calculate_driver_stats(driver, round)
@@ -159,6 +161,8 @@ class FantasyAdmin(commands.Cog):
 
         # region Team Embed
         player_table = sql.retrieve_player_table(user.id)
+        # TODO: Add except to handle retrieval of driver info if driver info is not yet populated.
+        #  For example, if the season has not begun but the year has incremented; if the driver info for 2025 is not available, retrieve for 2024
         driver_info = f1.get_driver_info(settings.F1_SEASON)
 
         tla_driver1 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item()
