@@ -1,4 +1,6 @@
 # A module for housing a variety of data structures for miscellaneous use, to prevent clutter in other scripts.
+from ast import Index
+
 import settings
 from utilities import fastf1util as f1
 from discord.app_commands import Choice
@@ -48,7 +50,11 @@ def timezone_choice_list() -> []:
 
 def drivers_choice_list(info: bool = False) -> []:
     drivers_list = []
-    driver_standings = f1.get_drivers_standings(datetime.now().year)
+    try:
+        driver_standings = f1.get_drivers_standings(datetime.now().year)
+    except IndexError as e:
+        driver_standings = f1.get_drivers_standings(datetime.now().year - 1)
+        logger.warning(f"Unable to retrieve driver standings for the year {datetime.now().year}! Retrieved driver standings for the year {datetime.now().year - 1} instead.")
     family_names = driver_standings.familyName
     given_names = driver_standings.givenName
     driver_codes = driver_standings.driverCode

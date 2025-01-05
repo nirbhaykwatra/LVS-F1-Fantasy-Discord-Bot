@@ -12,7 +12,12 @@ from datetime import datetime
 
 logger = settings.create_logger('fantasy-fastf1')
 
-drivers_standings = f1.get_drivers_standings(datetime.now().year)
+try:
+    drivers_standings = f1.get_drivers_standings(datetime.now().year)
+except IndexError as e:
+    drivers_standings = f1.get_drivers_standings(datetime.now().year - 1)
+    logger.warning(
+        f"Unable to retrieve driver standings for the year {datetime.now().year}! Retrieved driver standings for the year {datetime.now().year - 1} instead.")
 
 #region Cog
 class Formula1(commands.Cog):
