@@ -18,7 +18,7 @@ fastf1.Cache.enable_cache(settings.FASTF1_CACHE_DIR)
 ergast = Ergast()
 #endregion
 
-event_schedule = fastf1.get_event_schedule(settings.F1_SEASON, include_testing=False)
+event_schedule = fastf1.get_event_schedule(2025, include_testing=False)
 
 #region Basic Data
 
