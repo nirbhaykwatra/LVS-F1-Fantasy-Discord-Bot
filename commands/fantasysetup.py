@@ -23,7 +23,7 @@ class FantasySetup(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def add_season_events(self, interaction: discord.Interaction):
 
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
 
         guild = self.bot.get_guild(settings.GUILD_ID)
         season = f1.event_schedule
@@ -62,7 +62,7 @@ class FantasySetup(commands.Cog):
         )
         embed.set_author(name="Setup")
 
-        await interaction.followup.send(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed)
 
 
 async def setup(bot: commands.Bot) -> None:

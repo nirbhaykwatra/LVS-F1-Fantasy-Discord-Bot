@@ -47,6 +47,8 @@ class FantasyDebug(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def remove_season_events(self, interaction: discord.Interaction):
 
+        await interaction.response.defer(ephemeral=True)
+
         guild = self.bot.get_guild(settings.GUILD_ID)
 
         if guild is not None:
@@ -56,7 +58,10 @@ class FantasyDebug(commands.Cog):
             for event in events:
                 await event.delete()
 
-            await interaction.response.send_message(f"Season events removed.", ephemeral=True)
+            await interaction.followup.send(f"Season events removed.")
+
+        else:
+            await interaction.followup.send(f"Could not retrieve guild! Perhaps the guild ID is incorrect?")
 
 
 

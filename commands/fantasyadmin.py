@@ -209,7 +209,7 @@ class FantasyAdmin(commands.Cog):
         grand_prix=dt.grand_prix_choice_list())
     async def clear_team(self, interaction: discord.Interaction, user: discord.User, grand_prix: Choice[str]):
 
-        await interaction.response.defer()
+        await interaction.response.defer(ephemeral=True)
 
         embed = discord.Embed(title=f"Removed {user.name}'s team for {grand_prix.name}", colour=settings.EMBED_COLOR)
         player_table = sql.retrieve_player_table(user.id)
@@ -217,7 +217,7 @@ class FantasyAdmin(commands.Cog):
         sql.write_to_player_database(str(user.id), player_table)
         sql.import_players_table()
 
-        await interaction.followup.send(f"", ephemeral=True, embed=embed)
+        await interaction.followup.send(f"", embed=embed)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyAdmin(bot))
