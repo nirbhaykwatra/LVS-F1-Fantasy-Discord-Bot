@@ -21,7 +21,6 @@ ergast = Ergast()
 event_schedule = fastf1.get_event_schedule(2025, include_testing=False)
 
 #region Basic Data
-
 def get_drivers_standings(season: Optional[Union[Literal['current'], int]] = None,
                           round: Optional[Union[Literal['last'], int]] = None,
                           driver: Optional[str] = None,
