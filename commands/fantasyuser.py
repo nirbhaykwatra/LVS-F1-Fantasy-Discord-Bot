@@ -7,6 +7,7 @@ from utilities import datautils as dt
 from utilities import postgresql as sql
 from utilities import fastf1util as f1
 import pandas as pd
+import dataframe_image as dfi
 
 logger = settings.create_logger('fantasy-user')
 
@@ -32,7 +33,11 @@ class FantasyUser(commands.Cog):
                          'userid': interaction.user.id,
                          'teamname': f"{team_name}",
                          'teammotto': f"{team_motto}",
-                         'timezone': timezone.value})
+                         'timezone': timezone.value
+                                   })
+        results_record = pd.Series({'userid': interaction.user.id,
+                                    'username': interaction.user.name,
+                                    'teamname': f"{team_name}"})
         #endregion
 
         sql.players = pd.concat([sql.players, player_record.to_frame().T], ignore_index=True)
@@ -55,7 +60,7 @@ class FantasyUser(commands.Cog):
                             value=f"Season Points",
                             inline=True)
 
-        user_row = sql.results.loc[sql.results['userid'] == interaction.user.id].drop(labels=['userid','username','teamname','teammotto','timezone'],
+        user_row = sql.results.loc[sql.results['userid'] == interaction.user.id].drop(labels=['userid','username','teamname'],
                                                                           axis=1).squeeze()
         if user_row.empty:
             embed.add_field(name=f"0",
@@ -68,7 +73,7 @@ class FantasyUser(commands.Cog):
         embed.set_image(url=interaction.user.display_avatar.url)
         #endregion
         sql.create_player_table(interaction.user.id)
-        sql.write_to_database('players', sql.players)
+        sql.write_to_fantasy_database('players', sql.players)
         sql.import_players_table()
 
         await interaction.followup.send(f'Registered player {interaction.user.name}!', embed=embed, ephemeral=True)
@@ -327,6 +332,7 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='points-table', description='View the points table.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def points_table(self, interaction: discord.Interaction):
+        dfi.export(sql.results, 'results.png', table_conversion="chrome")
         await interaction.response.send_message(f'points-table command triggered', ephemeral=True)
     #endregion
 
