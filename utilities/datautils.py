@@ -51,15 +51,15 @@ def timezone_choice_list() -> []:
 def drivers_choice_list(info: bool = False) -> []:
     drivers_list = []
     try:
-        driver_standings = f1.get_drivers_standings(datetime.now().year)
+        driver_info = f1.get_driver_info(season='current')
     except IndexError as e:
-        driver_standings = f1.get_drivers_standings(datetime.now().year - 1)
+        driver_info = f1.get_driver_info(season=settings.F1_SEASON - 1)
         logger.warning(f"Unable to retrieve driver standings for the year {datetime.now().year}! Retrieved driver standings for the year {datetime.now().year - 1} instead.")
-    family_names = driver_standings.familyName
-    given_names = driver_standings.givenName
-    driver_codes = driver_standings.driverCode
+    family_names = driver_info.familyName
+    given_names = driver_info.givenName
+    driver_codes = driver_info.driverCode
 
-    for driver in range(0, driver_standings.position.count()):
+    for driver in range(0, driver_info.driverNumber.count()):
         last_name = family_names.get(driver)
         first_name = given_names.get(driver)
         driver_code = driver_codes.get(driver)
