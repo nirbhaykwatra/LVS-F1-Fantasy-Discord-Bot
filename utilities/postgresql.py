@@ -2,14 +2,30 @@
 import traceback
 from typing import Literal
 import sqlalchemy as sql
+from sqlalchemy import text
+from sqlalchemy_utils import database_exists, create_database, escape_like
 import pandas as pd
 import settings
 from utilities import fastf1util as f1
 
 logger = settings.create_logger('sql')
 
+
+#region Utilities
+def write_to_fantasy_database(table: str, data: pd.DataFrame, if_exists: Literal["fail", "replace", "append"] = "replace", index: bool = False):
+    result = data.to_sql(table, conn, if_exists=if_exists, index=index)
+    logger.info(f'Wrote to fantasy database: {data.info}')
+
+def write_to_player_database(table: str, data: pd.DataFrame, if_exists: Literal["fail", "replace", "append"] = "replace", index: bool = False):
+    result = data.to_sql(table, player_conn, if_exists=if_exists, index=index)
+    logger.info(f'Wrote to player database: {data.info}')
+#endregion
+
 # region Connect to fantasy database
 engine = sql.create_engine(settings.POSTGRES_BASE_URL)
+if not database_exists(engine.url):
+    create_database(engine.url)
+    logger.info(f'Fantasy database not found. Created new database: {engine.url}.')
 conn = None
 try:
     conn = engine.connect()
@@ -21,6 +37,9 @@ except Exception as e:
 
 #region Connect to player database
 player_engine = sql.create_engine(settings.POSTGRES_PLAYER_BASE_URL)
+if not database_exists(player_engine.url):
+    create_database(player_engine.url)
+    logger.info(f'Player database not found. Created new database: {player_engine.url}.')
 player_conn = None
 try:
     player_conn = player_engine.connect()
@@ -44,9 +63,7 @@ def retrieve_player_table(user_id: int) -> pd.DataFrame:
     return player_table
 
 def draft_to_table(user_id: int, round: int, driver1: str, driver2: str, driver3: str, wildcard: str, team: str):
-
     draft_df = retrieve_player_table(user_id)
-
     draft_series = pd.Series({
         'round': round,
         'driver1': driver1,
@@ -67,23 +84,23 @@ def draft_to_table(user_id: int, round: int, driver1: str, driver2: str, driver3
 
     draft_table = pd.concat([draft_df, draft_series.to_frame().T], ignore_index=True)
     write_to_player_database(str(user_id), draft_table, if_exists='replace')
+    
+def remove_player_table(user_id: int):
+    sql_query = text("drop table :user;")
+    sql_query = sql_query.bindparams(user = user_id)
+    result = player_conn.execute(sql_query)
 
 #endregion
 
-#region Table Import Methods
-
-def import_drivers_table() -> pd.DataFrame:
-    if conn is not None:
-        drivers = pd.read_sql_table('drivers', conn)
-        logger.info(f'Imported drivers table')
-        return drivers
-    else:
-        logger.error(f'Could not import drivers table as there is no connection to PostgreSQL.')
-
+#region Fantasy DB Table Import Methods
 
 def import_players_table() -> pd.DataFrame:
     if conn is not None:
-        players = pd.read_sql_table('players', conn)
+        try:
+            players = pd.read_sql_table('players', conn)
+        except ValueError as e:
+            write_to_fantasy_database('players', pd.DataFrame(), if_exists='replace')
+            players = pd.read_sql_table('players', conn)
         logger.info(f'Imported players table')
         return players
     else:
@@ -91,59 +108,55 @@ def import_players_table() -> pd.DataFrame:
 
 def import_results_table() -> pd.DataFrame:
     if conn is not None:
-        results = pd.read_sql_table('results', conn)
+        try:
+            results = pd.read_sql_table('results', conn)
+        except ValueError as e:
+            write_to_fantasy_database('results', pd.DataFrame(), if_exists='replace')
+            results = pd.read_sql_table('results', conn)
         logger.info(f'Imported results table')
         return results
     else:
         logger.error(f'Could not import results table as there is no connection to PostgreSQL.')
 
-def import_teams_table() -> pd.DataFrame:
-    if conn is not None:
-        teams = pd.read_sql_table('teams', conn)
-        logger.info(f'Imported teams table')
-        return teams
-    else:
-        logger.error(f'Could not import teams table as there is no connection to PostgreSQL.')
 
 #endregion
 
 #region Table Imports
 
-drivers = import_drivers_table()
 players = import_players_table()
 results = import_results_table()
-teams = import_teams_table()
+
+#endregion
+
+#region Fantasy Table Validation
+def initialise_results(frame: pd.DataFrame) -> pd.DataFrame:
+    frame_columns = ['userid', 'username', 'teamname']
+    for rounds in f1.ergast.get_race_schedule(season='current')['round']:
+        frame_columns.append(f'round{rounds}')
+    frame[frame_columns] = None
+    return frame
+
+def initialise_players(frame: pd.DataFrame) -> pd.DataFrame:
+    frame_columns = ['userid', 'username', 'teamname', 'teammotto','points', 'timezone']
+    frame[frame_columns] = None
+    return frame
+
+bIsPlayersEmpty = players.empty
+bIsResultsEmpty = results.empty
+
+if bIsPlayersEmpty:
+    players = initialise_players(players)
+    write_to_fantasy_database('players', players, if_exists='replace')
+    logger.info(f'Initialised players table: {players}')
+
+if bIsResultsEmpty:
+    results = initialise_results(results)
+    write_to_fantasy_database('results', results, if_exists='replace')
+    logger.info(f'Initialised results table: {results}')
 
 #endregion
 
 #region Formula 1 Data
-
-def update_driver_statistics():
-    # TODO: Add except to handle retrieval of driver standings if driver standings are not yet populated.
-    #  For example, if the season has not begun but the year has incremented; if the driver standings for 2025 are not available, retrieve for 2024
-    standings = f1.get_drivers_standings(settings.F1_SEASON)
-
-    #region Update columns
-    drivers['position'] = standings['position']
-    drivers['positionText'] = standings['positionText']
-    drivers['points'] = standings['points']
-    drivers['wins'] = standings['wins']
-    drivers['driverId'] = standings['driverId']
-    drivers['driverNumber'] = standings['driverNumber']
-    drivers['driverCode'] = standings['driverCode']
-    drivers['driverUrl'] = standings['driverUrl']
-    drivers['givenName'] = standings['givenName']
-    drivers['familyName'] = standings['familyName']
-    drivers['dateOfBirth'] = standings['dateOfBirth']
-    drivers['driverNationality'] = standings['driverNationality']
-    drivers['constructorIds'] = standings['constructorIds']
-    drivers['constructorUrls'] = standings['constructorUrls']
-    drivers['constructorNames'] = standings['constructorNames']
-    drivers['constructorNationalities'] = standings['constructorNationalities']
-    #endregion
-
-    write_to_database('drivers', drivers, if_exists='replace')
-    logger.info(f'Updated driver statistics: {drivers}')
 
 def update_player_points():
     for player in players.userid:
@@ -155,52 +168,12 @@ def populate_results():
     #TODO: Solve the problem of adding new entries to the results database, as it is currently unpopulated.
     # Create a series with all the requisite column values and append it to the results dataframe.
     # Update individual round scores by accessing the score using the userid and round_[round number here] fields within a DataFrame search.
-
-    # empty_results = results[0:0]
-    # new_results = empty_results
-
-    logger.info(f"Results: {results}")
-
-    for player in players.userid:
-        # TODO: Add rounds to series using loop, with the number of iterations being the number of rounds from jolpica. DO NOT hard code the number of rounds.
-        result_record = pd.Series({
-            'userid': player,
-            'username': players.loc[players['userid'] == player, 'username'].item(),
-            'teamname': players.loc[players['userid'] == player, 'teamname'].item(),
-            'round1': 0,
-            'round2': 0,
-            'round3': 0,
-            'round4': 0,
-            'round5': 0,
-            'round6': 0,
-            'round7': 0,
-            'round8': 0,
-            'round9': 0,
-            'round10': 0,
-            'round11': 0,
-            'round12': 0,
-            'round13': 0,
-            'round14': 0,
-            'round15': 0,
-            'round16': 0,
-            'round17': 0,
-            'round18': 0,
-            'round19': 0,
-            'round20': 0,
-            'round21': 0,
-            'round22': 0,
-            'round23': 0,
-            'round24': 0})
-
-        new_results = pd.concat([results, result_record.to_frame().T], ignore_index=True)
-
-        logger.info(f"New results: {new_results}")
-        write_to_database('results', new_results, if_exists='replace')
+    pass
 
 def update_player_result(user_id: int, round: int, points: float):
     if any(user_id == results.userid):
         results.loc[results.index[results['userid'] == user_id], f'round_{round}'] = points
-        write_to_database('results', results, if_exists='replace')
+        write_to_fantasy_database('results', results, if_exists='replace')
         logger.info(f"Updated {players.loc[players['userid'] == user_id, 'username'].item()}'s results: {results}")
     else:
         try:
@@ -239,21 +212,12 @@ def update_player_result(user_id: int, round: int, points: float):
 
         new_results = pd.concat([results, result_record.to_frame().T], ignore_index=True)
         new_results.loc[new_results.index[new_results['userid'] == user_id], f'round{round}'] = points
-        write_to_database('results', new_results, if_exists='replace')
+        write_to_fantasy_database('results', new_results, if_exists='replace')
         logger.info(f"New results: {new_results}")
 
 #endregion
 
-#region Utilities
-def write_to_database(table: str, data: pd.DataFrame, if_exists: Literal["fail", "replace", "append"] = "replace", index: bool = False):
-    result = data.to_sql(table, conn, if_exists=if_exists, index=index)
-    logger.info(f'Wrote to fantasy database: {data.info}')
 
-def write_to_player_database(table: str, data: pd.DataFrame, if_exists: Literal["fail", "replace", "append"] = "replace", index: bool = False):
-    result = data.to_sql(table, player_conn, if_exists=if_exists, index=index)
-    logger.info(f'Wrote to player database: {data.info}')
-#endregion
 
 if __name__ == '__main__':
-    #update_player_result(867434834120540180, 17, 57)
     pass
