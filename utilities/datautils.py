@@ -29,12 +29,12 @@ team_names_full = {
 
 td = timedelta()
 
-with open(f"{os.getcwd()}\\data\\drivers\\excluded_drivers.json") as file:
+with open(f"{settings.BASE_DIR}\\data\\drivers\\excluded_drivers.json") as file:
     exclude_drivers = json.load(file)
 file.close()
 
 def write_excluded_drivers():
-    with open(f"{os.getcwd()}\\data\\drivers\\excluded_drivers.json", "w") as out_file:
+    with open(f"{settings.BASE_DIR}\\data\\drivers\\excluded_drivers.json", "w") as out_file:
         json.dump(exclude_drivers, out_file)
     file.close()
 
@@ -98,5 +98,5 @@ def grand_prix_choice_list() -> []:
     return grand_prixs_list
 
 if __name__ == '__main__':
-    logger.info(f"{grand_prix_choice_list()}")
+    logger.info(f"{drivers_choice_list()}")
     pass
