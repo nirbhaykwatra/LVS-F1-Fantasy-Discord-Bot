@@ -88,7 +88,8 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def remove_player(self, interaction: discord.Interaction, player: discord.User):
         sql.players = sql.players[sql.players.userid != player.id]
-        sql.write_to_database('players', sql.players)
+        sql.write_to_fantasy_database('players', sql.players)
+        sql.remove_player_table(player.id)
         await interaction.response.send_message(f'Removed {player.name} from the league.', ephemeral=True)
 
     @admin_group.command(name='modify-driver-choice', description='Modify the drivers choice pool.')
@@ -163,7 +164,7 @@ class FantasyAdmin(commands.Cog):
         player_table = sql.retrieve_player_table(user.id)
         # TODO: Add except to handle retrieval of driver info if driver info is not yet populated.
         #  For example, if the season has not begun but the year has incremented; if the driver info for 2025 is not available, retrieve for 2024
-        driver_info = f1.get_driver_info(settings.F1_SEASON)
+        driver_info = f1.get_driver_info(season="current")
 
         tla_driver1 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item()
         tla_driver2 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver2'].item()

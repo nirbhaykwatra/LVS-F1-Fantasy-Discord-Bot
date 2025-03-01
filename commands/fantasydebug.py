@@ -63,6 +63,10 @@ class FantasyDebug(commands.Cog):
         else:
             await interaction.followup.send(f"Could not retrieve guild! Perhaps the guild ID is incorrect?")
 
+    @debug_group.command(name='remove-player-database', description='Remove all season events from server calendar.')
+    @app_commands.checks.has_role('Administrator')
+    async def remove_player_database(self, interaction: discord.Interaction):
+        sql.remove_player_table(interaction.user.id)
 
 
 

@@ -63,6 +63,12 @@ class FantasySetup(commands.Cog):
         embed.set_author(name="Setup")
 
         await interaction.followup.send(embed=embed)
+        
+    @setup_group.command(name='create-league', description='Create a new league.')
+    @app_commands.checks.has_role('Administrator')
+    async def create_league(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f"Create League command executed successfully.", ephemeral=True)
+        pass
 
 
 async def setup(bot: commands.Bot) -> None:
