@@ -75,7 +75,10 @@ def drivers_choice_list(info: bool = False) -> []:
 
 def constructor_choice_list() -> []:
     constructors_list = []
-    constructor_standings = f1.ergast.get_constructor_standings(settings.F1_SEASON).content[0]
+    try:
+        constructor_standings = f1.ergast.get_constructor_standings(settings.F1_SEASON).content[0]
+    except IndexError as e:
+        constructor_standings = f1.ergast.get_constructor_standings(season=settings.F1_SEASON - 1).content[0]
     constructor_names = constructor_standings.constructorName
 
     for team in constructor_names:
