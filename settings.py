@@ -6,8 +6,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 #region Fantasy Data
-F1_SEASON = 2024
-F1_ROUND = 19
+F1_SEASON = 2025
+F1_ROUND = 1
 #endregion
 
 #region Constants
