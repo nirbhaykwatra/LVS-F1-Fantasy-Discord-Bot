@@ -83,14 +83,14 @@ class FantasyUser(commands.Cog):
     @app_commands.choices(driver1=dt.drivers_choice_list(),
                           driver2=dt.drivers_choice_list(),
                           driver3=dt.drivers_choice_list(),
-                          wildcard=dt.drivers_choice_list(),
+                          bogey_driver=dt.drivers_choice_list(),
                           team=dt.constructor_choice_list(),
                           )
     async def draft(self, interaction: discord.Interaction,
                     driver1: Choice[str],
                     driver2: Choice[str],
                     driver3: Choice[str],
-                    wildcard: Choice[str],
+                    bogey_driver: Choice[str],
                     team: Choice[str]):
 
         await interaction.response.defer(ephemeral=True)
