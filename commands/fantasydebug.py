@@ -1,3 +1,5 @@
+import logging
+
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
@@ -63,11 +65,45 @@ class FantasyDebug(commands.Cog):
         else:
             await interaction.followup.send(f"Could not retrieve guild! Perhaps the guild ID is incorrect?")
 
-    @debug_group.command(name='remove-player-database', description='Remove all season events from server calendar.')
+    @debug_group.command(name='remove-player-database', description='Remove selected user table from database.')
     @app_commands.checks.has_role('Administrator')
-    async def remove_player_database(self, interaction: discord.Interaction):
-        sql.remove_player_table(interaction.user.id)
+    async def remove_player_database(self, interaction: discord.Interaction, user: discord.User):
+        sql.remove_player_table(user.id)
+        await interaction.response.send_message(f"Successfully removed {user.name}'s Player Database.", ephemeral=True)
 
+    @debug_group.command(name='set-current-round', description='Set the current round.')
+    @app_commands.checks.has_role('Administrator')
+    async def set_current_round(self, interaction: discord.Interaction, round_number: int):
+        settings.F1_ROUND = round_number
+        await interaction.response.send_message(f'Current round set to round {settings.F1_ROUND}', ephemeral=True)
+
+    @debug_group.command(name='show-current-round', description='Show the current round.')
+    @app_commands.checks.has_role('Administrator')
+    async def show_current_round(self, interaction: discord.Interaction):
+        await interaction.response.send_message(f'Current round is round {settings.F1_ROUND}', ephemeral=True)
+        
+    @debug_group.command(name='increment-round', description='Increment the current round number.')
+    @app_commands.checks.has_role('Administrator')
+    async def increment_round(self, interaction: discord.Interaction, number_of_rounds: int):
+        initial_round = settings.F1_ROUND
+        settings.F1_ROUND += number_of_rounds
+        await interaction.response.send_message(f"Current round set to {initial_round + number_of_rounds}.", ephemeral=True)
+
+    @debug_group.command(name='decrement-round', description='Decrement the current round number.')
+    @app_commands.checks.has_role('Administrator')
+    async def decrement_round(self, interaction: discord.Interaction, number_of_rounds: int):
+        initial_round = settings.F1_ROUND
+        settings.F1_ROUND -= number_of_rounds
+        await interaction.response.send_message(f"Current round set to {initial_round - number_of_rounds}.", ephemeral=True)
+
+    @debug_group.command(name='check-driver-teams', description='Check if two or more drivers are in the same team.')
+    @app_commands.checks.has_role('Administrator')
+    async def check_driver_teams(self, interaction: discord.Interaction, driver1: str, driver2: str, driver3: str, driver4: str):
+        selected_drivers = [driver1, driver2, driver3, driver4]
+        driver_info = f1.get_driver_info(settings.F1_SEASON)
+        logging.info(f'Driver Info: {driver_info}')
+        
+        await interaction.response.send_message(f"check-driver-teams command executed.", ephemeral=True)
 
 
 async def setup(bot: commands.Bot) -> None:
