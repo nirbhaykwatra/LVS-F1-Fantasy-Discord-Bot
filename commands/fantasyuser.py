@@ -96,8 +96,19 @@ class FantasyUser(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         # TODO: Implement exhaustion, implement response if user is not registered
 
-        if not any(sql.players.userid == interaction.user.id):
-
+        try:
+            if not any(sql.players.userid == interaction.user.id):
+    
+                unregistered_embed = discord.Embed(
+                    title=f"You are not registered!",
+                    description=f" Please register to draft!",
+                    colour=settings.EMBED_COLOR
+                )
+    
+                await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+                return
+        except ValueError as e:
+            
             unregistered_embed = discord.Embed(
                 title=f"You are not registered!",
                 description=f" Please register to draft!",
