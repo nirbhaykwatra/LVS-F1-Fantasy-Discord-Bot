@@ -45,6 +45,7 @@ try:
     player_conn = player_engine.connect()
     logger.info(
         f'Connected to {player_engine.url.database} database on {player_engine.url.username}@{player_engine.url.host}:{player_engine.url.port}')
+    player_metadata = sql.MetaData()
 except Exception as e:
     logger.error(f'Could not connect to {player_engine.url.database} database! Exception: {traceback.format_exc()}')
 #endregion
@@ -86,9 +87,10 @@ def draft_to_table(user_id: int, round: int, driver1: str, driver2: str, driver3
     write_to_player_database(str(user_id), draft_table, if_exists='replace')
     
 def remove_player_table(user_id: int):
-    sql_query = text("drop table :user;")
-    sql_query = sql_query.bindparams(user = user_id)
-    result = player_conn.execute(sql_query)
+    player_table = sql.Table(str(user_id), player_metadata)
+    player_table.drop(player_engine, checkfirst=True)
+    #sql_query = 'DROP TABLE IF EXISTS :user'
+    #result = player_conn.execute(text(sql_query), {'user': user_id})
 
 #endregion
 
