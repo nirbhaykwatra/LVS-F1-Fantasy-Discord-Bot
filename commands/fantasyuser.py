@@ -118,7 +118,6 @@ class FantasyUser(commands.Cog):
             await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
             return
 
-
         grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
                             value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
                             )
@@ -227,7 +226,7 @@ class FantasyUser(commands.Cog):
         embed.add_field(name=f"{em_driver3}",
                         value="Driver 3", inline=True)
         embed.add_field(name=f"{em_wildcard}",
-                        value="Wildcard", inline=True)
+                        value="Bogey Driver", inline=True)
         embed.add_field(name=f"{em_team}",
                         value="Constructor", inline=True)
         #endregion
@@ -349,7 +348,21 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='exhausted', description='View your team exhaustions.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def exhausted(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f'exhausted command triggered', ephemeral=True)
+        player_table = sql.retrieve_player_table(interaction.user.id)
+        
+        last_team = player_table[player_table['round'] == settings.F1_ROUND - 1].squeeze()
+        second_last_team = player_table[player_table['round'] == settings.F1_ROUND - 2].squeeze()
+        
+        common = pd.Series(list(set(last_team).intersection(set(second_last_team))))
+        
+        embed = discord.Embed(title="Exhausted Drivers", colour=settings.EMBED_COLOR)
+        
+        for element in common:
+            embed.add_field(name=f"{element}", value=f"Exhausted", inline=False)
+        
+        logger.info(f'Last team: {last_team}\n Second last team: {second_last_team}\n Common team: {common}')
+        
+        await interaction.response.send_message(embed=embed, ephemeral=True)
     #endregion
 
     #region Player information
