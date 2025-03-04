@@ -1,4 +1,5 @@
 # A module for getting easily getting data from FastF1 without cluttering any other cogs.
+import os
 from typing import (
     Literal,
     Optional,
@@ -64,4 +65,6 @@ def get_session(year: int,
 #endregion
 
 if __name__=="__main__":
-    logger.info(event_schedule)
+    #driver_info = get_driver_info(season='current')
+    constructor_info = ergast.get_constructor_info(season='current').to_csv(os.path.join(os.getcwd(), 'constructors.csv'))
+    logger.info(f"{constructor_info}")
