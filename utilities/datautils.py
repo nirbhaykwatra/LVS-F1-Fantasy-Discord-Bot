@@ -15,16 +15,16 @@ logger = settings.create_logger('data-utils')
 # Choice objects and other areas where the full team name is need.
 # For example, team_names_full[ergast.get_constructor_standing.constructorId]
 team_names_full = {
-    "Red Bull"  :   "Oracle Red Bull Racing",
-    "McLaren"   :   "McLaren Formula 1 Team",
-    "Ferrari"   :   "Scuderia Ferrari",
-    "Mercedes"  :   "Mercedes-AMG PETRONAS F1 Team",
-    "Aston Martin"  :   "Aston Martin Aramco F1 Team",
-    "RB F1 Team"    :   "Visa CashApp RB Formula 1 Team",
-    "Haas F1 Team"  :   "MoneyGram Haas F1 Team",
-    "Williams"  :   "Williams Racing",
-    "Alpine F1 Team":   "BWT Alpine F1 Team",
-    "Sauber"    :   "Stake F1 Team Kick Sauber"
+    "red_bull"  :   "Oracle Red Bull Racing",
+    "mclaren"   :   "McLaren Formula 1 Team",
+    "ferrari"   :   "Scuderia Ferrari",
+    "mercedes"  :   "Mercedes-AMG PETRONAS F1 Team",
+    "aston_martin"  :   "Aston Martin Aramco F1 Team",
+    "rb"    :   "Visa CashApp RB Formula 1 Team",
+    "haas"  :   "MoneyGram Haas F1 Team",
+    "williams"  :   "Atlassian Williams Racing",
+    "alpine":   "BWT Alpine F1 Team",
+    "sauber"    :   "Stake F1 Team Kick Sauber"
 }
 
 td = timedelta()
@@ -79,9 +79,10 @@ def constructor_choice_list() -> []:
         constructor_standings = f1.ergast.get_constructor_standings(settings.F1_SEASON).content[0]
     except IndexError as e:
         constructor_standings = f1.ergast.get_constructor_standings(season=settings.F1_SEASON - 1).content[0]
-    constructor_names = constructor_standings.constructorName
+        
+    constructors = f1.ergast.get_constructor_info(season='current').constructorId
 
-    for team in constructor_names:
+    for team in constructors:
         constructors_list.append(Choice(name=team_names_full[team], value=team))
 
     return constructors_list
