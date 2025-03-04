@@ -122,29 +122,86 @@ class FantasyUser(commands.Cog):
         grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
                             value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
                             )
+        
+        #region Draft Checks
+        
+        #Check for exhaustion
+        player_table = sql.retrieve_player_table(interaction.user.id)
 
+        last_team = player_table[player_table['round'] == settings.F1_ROUND - 1].squeeze()
+        second_last_team = player_table[player_table['round'] == settings.F1_ROUND - 2].squeeze()
+
+        common = pd.Series(list(set(last_team).intersection(set(second_last_team))))
+        
+        exhausted = []
+        embed = discord.Embed(title="Invalid Draft!", description="One or more of the following picks are exhausted!", colour=settings.EMBED_COLOR)
+        
+        for element in common:
+            if driver1.value == element or driver2.value == element or driver3.value == element or bogey_driver.value == element or team.value == element:
+                embed.add_field(name=f"{element}", value="Exhausted!", inline=False)
+                exhausted.append(element)
+                
+        if len(exhausted) != 0:
+            await interaction.followup.send(embed=embed, ephemeral=True)
+            return
+        
+        #Check if more than 2 drivers are in the same team
+        
+        selected_drivers = [driver1.value, driver2.value, driver3.value, bogey_driver.value]
+        
+        driver_info = f1.get_driver_info(settings.F1_SEASON)
+        
+        driverIds = []
+        selected_constructors = []
+        
+        for driver in selected_drivers:
+            driverIds.append(driver_info.loc[driver_info['driverCode'] == driver, ['driverId']].squeeze())
+            
+        for driver in driverIds:
+            selected_constructors.append(f1.ergast.get_constructor_info(season='current', driver=driver).constructorId.squeeze())
+            
+        bHasDuplicateConstructor = len(set(selected_constructors)) < 3
+        logger.info(f"Unique constructors: {len(set(selected_constructors))}")
+
+        embed_const = discord.Embed(title="Invalid Draft!", description="You cannot pick both drivers from multiple constructors!", colour=settings.EMBED_COLOR)
+        
+        if bHasDuplicateConstructor:
+            await interaction.followup.send(embed=embed_const, ephemeral=True)
+            return
+        
+        bNoDriverFromConstructor = team.value not in selected_constructors
+
+        embed_team = discord.Embed(title="Invalid Draft!", description="At least one picked driver has to represent your selected constructor!", colour=settings.EMBED_COLOR)
+        
+        if bNoDriverFromConstructor:
+            await interaction.followup.send(embed=embed_team, ephemeral=True)
+            return
+        
+        #endregion
+        
+        # Operation to modify the database table has to be done before creating the embed, as the embed will error out
+        # if there are no values in the table
         sql.draft_to_table(
-            user_id=interaction.user.id,
-            round=int(grand_prix.value),
-            driver1=driver1.value,
-            driver2=driver2.value,
-            driver3=driver3.value,
-            wildcard=wildcard.value,
-            team=team.value
-        )
-
+                user_id=interaction.user.id,
+                round=int(grand_prix.value),
+                driver1=driver1.value,
+                driver2=driver2.value,
+                driver3=driver3.value,
+                wildcard=bogey_driver.value,
+                team=team.value
+            )
         #region Team Embed
         player_table = sql.retrieve_player_table(interaction.user.id)
         # TODO: Add except to handle retrieval of driver info if driver info is not yet populated.
         #  For example, if the season has not begun but the year has incremented; if the driver info for 2025 is not available, retrieve for 2024
         driver_info = f1.get_driver_info(settings.F1_SEASON)
-
+    
         tla_driver1 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item()
         tla_driver2 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver2'].item()
         tla_driver3 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver3'].item()
         tla_wildcard = player_table.loc[player_table['round'] == int(grand_prix.value), 'wildcard'].item()
         short_team = player_table.loc[player_table['round'] == int(grand_prix.value), 'constructor'].item()
-
+    
         em_driver1 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'givenName'].item()} "
                       f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'familyName'].item()}")
         em_driver2 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'givenName'].item()} "
@@ -154,15 +211,15 @@ class FantasyUser(commands.Cog):
         em_wildcard = (f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'givenName'].item()} "
                       f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'familyName'].item()}")
         em_team = dt.team_names_full[short_team]
-
+        
         embed = discord.Embed(
             title=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'teamname'].item()}",
             description=f"{grand_prix.name}",
             colour=settings.EMBED_COLOR)
-
+    
         embed.set_author(name=f"{sql.players.loc[sql.players['userid'] == interaction.user.id, 'username'].item()}")
         embed.set_thumbnail(url=interaction.user.display_avatar.url)
-
+    
         embed.add_field(name=f"{em_driver1}",
                         value="Driver 1", inline=True)
         embed.add_field(name=f"{em_driver2}",
@@ -174,14 +231,14 @@ class FantasyUser(commands.Cog):
         embed.add_field(name=f"{em_team}",
                         value="Constructor", inline=True)
         #endregion
-
+    
         await interaction.followup.send(f"",embed=embed, ephemeral=True)
 
     @app_commands.command(name='team', description='View your team.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def team(self, interaction: discord.Interaction, grand_prix: Choice[str] | None, user: discord.User = None):
-
+        
         await interaction.response.defer(ephemeral=True)
 
         if grand_prix is None:
@@ -230,7 +287,7 @@ class FantasyUser(commands.Cog):
             embed.add_field(name=f"{em_driver3}",
                             value="Driver 3", inline=True)
             embed.add_field(name=f"{em_wildcard}",
-                            value="Wildcard", inline=True)
+                            value="Bogey Driver", inline=True)
             embed.add_field(name=f"{em_team}",
                             value="Constructor", inline=True)
             # endregion
