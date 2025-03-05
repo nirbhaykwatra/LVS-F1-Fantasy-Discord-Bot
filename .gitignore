@@ -167,3 +167,6 @@ postgres_data/
 
 #MacOS
 .DS_Store
+
+#Additional Files
+*.csv
