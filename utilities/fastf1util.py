@@ -65,6 +65,5 @@ def get_session(year: int,
 #endregion
 
 if __name__=="__main__":
-    #driver_info = get_driver_info(season='current')
-    constructor_info = ergast.get_constructor_info(season='current').to_csv(os.path.join(os.getcwd(), 'constructors.csv'))
-    logger.info(f"{constructor_info}")
+    event_schedule.to_csv(os.path.join(os.getcwd(), 'event_schedule.csv'))
+    logger.info(f"{event_schedule}")
