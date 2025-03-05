@@ -2,8 +2,7 @@
 import traceback
 from typing import Literal
 import sqlalchemy as sql
-from sqlalchemy import text
-from sqlalchemy_utils import database_exists, create_database, escape_like
+from sqlalchemy_utils import database_exists, create_database
 import pandas as pd
 import settings
 from utilities import fastf1util as f1
@@ -94,6 +93,10 @@ def remove_player_table(user_id: int):
 
 #endregion
 
+def create_timings_table():
+    timings_db = pd.DataFrame(columns=['round', 'deadline', 'reset'])
+    write_to_fantasy_database("timings", timings_db, if_exists='replace')
+
 #region Fantasy DB Table Import Methods
 
 def import_players_table() -> pd.DataFrame:
@@ -119,7 +122,16 @@ def import_results_table() -> pd.DataFrame:
         return results
     else:
         logger.error(f'Could not import results table as there is no connection to PostgreSQL.')
-
+        
+def import_timings_table() -> pd.DataFrame:
+    if conn is not None:
+        try:
+            timings = pd.read_sql_table('timings', conn)
+            return timings
+        except ValueError as e:
+            logger.info(f'Could not import timings table as it does not exist.')
+    else:
+        logger.error(f'Could not import timings table as there is no connection to PostgreSQL.')
 
 #endregion
 
@@ -127,8 +139,16 @@ def import_results_table() -> pd.DataFrame:
 
 players = import_players_table()
 results = import_results_table()
+timings = import_timings_table()
 
 #endregion
+
+def retrieve_timings() -> pd.DataFrame:
+    return timings
+
+def modify_timings(round_number: int, timestamp: str, column: str):
+    timings.loc[timings['round'] == round_number, column] = pd.Timestamp(ts_input=timestamp)
+    write_to_fantasy_database('timings', timings, if_exists='replace')
 
 #region Fantasy Table Validation
 def initialise_results(frame: pd.DataFrame) -> pd.DataFrame:
@@ -222,4 +242,5 @@ def update_player_result(user_id: int, round: int, points: float):
 
 
 if __name__ == '__main__':
+    create_timings_table()
     pass
