@@ -1,13 +1,11 @@
-import logging
-
 import discord
+import pandas as pd
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands
 
 import settings
 from utilities import postgresql as sql
-from utilities import drstatslib as stats
 from utilities import fastf1util as f1
 from utilities import datautils as dt
 
@@ -101,9 +99,18 @@ class FantasyDebug(commands.Cog):
     async def check_driver_teams(self, interaction: discord.Interaction, driver1: str, driver2: str, driver3: str, driver4: str):
         selected_drivers = [driver1, driver2, driver3, driver4]
         driver_info = f1.get_driver_info(settings.F1_SEASON)
-        logging.info(f'Driver Info: {driver_info}')
+        logger.info(f'Driver Info: {driver_info}')
         
         await interaction.response.send_message(f"check-driver-teams command executed.", ephemeral=True)
+
+    @debug_group.command(name='check-draft-deadline', description='Check draft deadline for a given round.')
+    @app_commands.checks.has_role('Administrator')
+    @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
+    async def check_draft_deadline(self, interaction: discord.Interaction, grand_prix: Choice[str]):
+        timings = sql.retrieve_timings()
+        deadline = timings.loc[timings['round'] == int(grand_prix.value), 'deadline'].to_list()
+        reset = timings.loc[timings['round'] == int(grand_prix.value), 'reset'].to_list()
+        await interaction.response.send_message(f"Draft deadline for {grand_prix.name} is {deadline[0]} and reset is {reset[0]}", ephemeral=True)
 
 
 async def setup(bot: commands.Bot) -> None:
