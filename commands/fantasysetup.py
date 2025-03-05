@@ -4,8 +4,6 @@ from discord.app_commands import Choice
 from discord.ext import commands
 
 import settings
-from utilities import postgresql as sql
-from utilities import drstatslib as stats
 from utilities import fastf1util as f1
 from utilities import datautils as dt
 
