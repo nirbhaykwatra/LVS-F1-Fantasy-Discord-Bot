@@ -1,4 +1,7 @@
+import datetime
+
 import discord
+import pandas as pd
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands
@@ -219,6 +222,15 @@ class FantasyAdmin(commands.Cog):
         sql.import_players_table()
 
         await interaction.followup.send(f"", embed=embed)
+
+    @admin_group.command(name='set-draft-deadline', description='Clear the drafted team for any player, in any round.')
+    @app_commands.checks.has_role('Administrator')
+    @app_commands.choices(
+        grand_prix=dt.grand_prix_choice_list()
+    )
+    async def set_draft_deadline(self, interaction: discord.Interaction, grand_prix: Choice[str], datetime_utc_naive: str, column: str):
+        sql.modify_timings(int(grand_prix.value), datetime_utc_naive, column)
+        await interaction.response.send_message(f"New draft deadline set for {grand_prix.name}", ephemeral=True)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyAdmin(bot))
