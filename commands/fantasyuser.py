@@ -8,6 +8,7 @@ from utilities import postgresql as sql
 from utilities import fastf1util as f1
 import pandas as pd
 import dataframe_image as dfi
+import utilities.timing as timing
 
 logger = settings.create_logger('fantasy-user')
 
@@ -122,7 +123,19 @@ class FantasyUser(commands.Cog):
                             value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
                             )
         
+        fantasy_user_table = sql.players
+        
         #region Draft Checks
+        #TODO: Implement bogey driver check (bogey driver has to be from bottom 5 teams) before round 2, when
+        # constructor standings are available
+
+        embed_deadline = discord.Embed(title="The draft deadline has passed!", description="In case of extraordinary circumstances, contact the league administrator to see if they can "
+                                                                                           "draft your team for you.", colour=settings.EMBED_COLOR)
+        
+        # Deadline check
+        if timing.draft_deadline_passed(sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item()):
+            await interaction.followup.send(embed=embed_deadline, ephemeral=True)
+            return
         
         #Check for exhaustion
         player_table = sql.retrieve_player_table(interaction.user.id)
