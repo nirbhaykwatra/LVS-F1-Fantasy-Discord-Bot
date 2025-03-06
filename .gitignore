@@ -170,3 +170,4 @@ postgres_data/
 
 #Additional Files
 *.csv
+*.png
