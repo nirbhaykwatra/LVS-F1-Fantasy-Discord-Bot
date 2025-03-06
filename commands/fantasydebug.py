@@ -1,9 +1,7 @@
 import discord
-import pandas as pd
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands
-
 import settings
 from utilities import postgresql as sql
 from utilities import fastf1util as f1
@@ -58,7 +56,7 @@ class FantasyDebug(commands.Cog):
             for event in events:
                 await event.delete()
 
-            await interaction.followup.send(f"Season events removed.")
+            await interaction.followup.send(f"Season events removed.", ephemeral=True)
 
         else:
             await interaction.followup.send(f"Could not retrieve guild! Perhaps the guild ID is incorrect?")
@@ -111,6 +109,24 @@ class FantasyDebug(commands.Cog):
         deadline = timings.loc[timings['round'] == int(grand_prix.value), 'deadline'].to_list()
         reset = timings.loc[timings['round'] == int(grand_prix.value), 'reset'].to_list()
         await interaction.response.send_message(f"Draft deadline for {grand_prix.name} is {deadline[0]} and reset is {reset[0]}", ephemeral=True)
+
+    @debug_group.command(name='reset-round-points', description='Reset the points for a given round.')
+    @app_commands.checks.has_role('Administrator')
+    @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
+    async def reset_round_points(self, interaction: discord.Interaction, grand_prix: Choice[str], user: discord.User = None):
+        if user is None:
+            sql.results.loc[f'round{grand_prix.value}'] = 0
+            sql.results.loc[f'round{grand_prix.value}breakdown'] = None
+        else:
+            sql.results.loc[sql.results['userid'] == user.id, f'round{grand_prix.value}'] = 0
+            sql.results.loc[sql.results['userid'] == user.id, f'round{grand_prix.value}breakdown'] = None
+            
+        sql.write_to_fantasy_database('results', sql.results)
+        sql.results = sql.import_results_table()
+        sql.update_player_points()
+        sql.players = sql.import_players_table()
+        
+        await interaction.response.send_message(f"Reset points for {grand_prix.name}", ephemeral=True)
 
 
 async def setup(bot: commands.Bot) -> None:
