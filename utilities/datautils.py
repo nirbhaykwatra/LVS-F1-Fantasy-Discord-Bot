@@ -1,13 +1,11 @@
 # A module for housing a variety of data structures for miscellaneous use, to prevent clutter in other scripts.
-from ast import Index
-
+import pytz
 import settings
 from utilities import fastf1util as f1
 from discord.app_commands import Choice
 from datetime import datetime, timedelta
 import pandas as pd
 import json
-import os
 
 logger = settings.create_logger('data-utils')
 
@@ -27,7 +25,34 @@ team_names_full = {
     "sauber"    :   "Stake F1 Team Kick Sauber"
 }
 
+circuit_map = {
+    "1": "albert_park", "2": "shanghai", "3": "suzuka", "4": "bahrain",
+    "5": "jeddah", "6": "miami", "7": "imola", "8": "monaco",
+    "9": "catalunya", "10": "villeneuve", "11": "red_bull_ring", "12": "silverstone",
+    "13": "spa", "14": "hungaroring", "15": "zandvoort", "16": "monza",
+    "17": "baku", "18": "marina_bay", "19": "americas", "20": "rodriguez",
+    "21": "interlagos", "22": "vegas", "23": "losail", "24": "yas_marina"
+}
+
+img_url_map = {
+    "1": "Australia", "2": "China", "3": "Japan", "4": "Bahrain",
+    "5": "Saudi_Arabia", "6": "Miami", "7": "Emilia_Romagna", "8": "Monaco",
+    "9": "Spain", "10": "Canada", "11": "Austria", "12": "Great_Britain",
+    "13": "Belgium", "14": "Hungary", "15": "Netherlands", "16": "Italy",
+    "17": "Baku", "18": "Singapore", "19": "USA", "20": "Mexico",
+    "21": "Brazil", "22": "Las_Vegas", "23": "Qatar", "24": "Abu_Dhabi"
+}
+
+points_breakdown_map = {
+    'driver1' : "Driver 1",
+    'driver2' : "Driver 2",
+    'driver3' : "Driver 3",
+    'bogey_driver' : "Bogey Driver",
+    'team' : "Constructor",
+}
+
 td = timedelta()
+all_tz = pytz.all_timezones
 
 with open(f"{settings.BASE_DIR}\\data\\drivers\\excluded_drivers.json") as file:
     exclude_drivers = json.load(file)
@@ -45,7 +70,8 @@ def timezone_choice_list() -> []:
     return [
         Choice(name="Pacific Standard Time", value="America/Los_Angeles"),
         Choice(name="Eastern Standard Time", value="America/New_York"),
-        Choice(name="Indian Standard Time", value="Asia/Kolkata")
+        Choice(name="Indian Standard Time", value="Asia/Kolkata"),
+        Choice(name="Atlantic Standard Time", value="America/Halifax"),
             ]
 
 def drivers_choice_list(info: bool = False) -> []:
@@ -66,7 +92,6 @@ def drivers_choice_list(info: bool = False) -> []:
         if info is False:
             if driver_code in exclude_drivers:
                 continue
-
             drivers_list.append(Choice(name=f"{first_name} {last_name}", value=driver_code))
         else:
             drivers_list.append(Choice(name=f"{first_name} {last_name}", value=driver_code))
