@@ -1,5 +1,4 @@
 # A module for getting easily getting data from FastF1 without cluttering any other cogs.
-import os
 from typing import (
     Literal,
     Optional,
@@ -19,7 +18,7 @@ fastf1.Cache.enable_cache(settings.FASTF1_CACHE_DIR)
 ergast = Ergast()
 #endregion
 
-event_schedule = fastf1.get_event_schedule(2025, include_testing=False)
+event_schedule = fastf1.get_event_schedule(year=settings.F1_SEASON, include_testing=False)
 
 #region Basic Data
 def get_drivers_standings(season: Optional[Union[Literal['current'], int]] = None,
@@ -65,5 +64,11 @@ def get_session(year: int,
 #endregion
 
 if __name__=="__main__":
-    event_schedule.to_csv(os.path.join(os.getcwd(), 'event_schedule.csv'))
-    logger.info(f"{event_schedule}")
+    #event_schedule.to_csv(os.path.join(os.getcwd(), 'event_schedule.csv'))
+    for event in event_schedule.RoundNumber:
+        logger.info(f"{event}")
+        
+    #localized_time: pd.Timestamp = event.Session5DateUtc.item().tz_localize('UTC')
+        
+    pass
+        
