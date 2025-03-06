@@ -22,10 +22,8 @@ POSTGRES_PLAYER_BASE_URL = f'postgresql://{os.getenv('SQLUSER')}:{os.getenv('SQL
 RACE_POINTS = [22, 18, 15, 12, 10, 8, 6, 4, 2, 1]
 SPRINT_POINTS = [5, 4, 3, 2, 1, -1, -2, -3, -4, -5]
 CONSTRUCTOR_POINTS = [5, 4, 3, 2, 1]
-WILDCARD_PTS_RACE = 3
-WILDCARD_PTS_QUALI = 2
-WILDCARD_PTS_RACE_SPRINT = 2
-WILDCARD_PTS_QUALI_SPRINT = 1
+BOGEY_POINTS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, -0.5, -1, -1.5, -2, -2.5, -3, -3.5, -4, -4.5, -5]
+BOGEY_POINTS_SPRINT = [5, 5, 4, 4, 3, 3, 2, 2, 1, 1, -0.5, -0.5, -1, -1, -1.5, -1.5, -2, -2, -2.5, -2.5]
 
 GUILD_ID = int(os.getenv('GUILD_ID'))
 TOKEN = os.getenv('TOKEN')
