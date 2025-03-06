@@ -155,6 +155,7 @@ def initialise_results(frame: pd.DataFrame) -> pd.DataFrame:
     frame_columns = ['userid', 'username', 'teamname']
     for rounds in f1.ergast.get_race_schedule(season='current')['round']:
         frame_columns.append(f'round{rounds}')
+        frame_columns.append(f'round{rounds}breakdown')
     frame[frame_columns] = None
     return frame
 
@@ -182,65 +183,18 @@ if bIsResultsEmpty:
 
 def update_player_points():
     for player in players.userid:
-        player_results = results.loc[results['userid'] == player].drop(labels=['userid','teamname'], axis=1).squeeze()
-        players.loc[players['userid'] == player, 'points'] = player_results.sum()
-        logger.info(f"Updated {players.loc[players['userid'] == player, 'username'].item()}'s season points! ({players.points.item()} points)")
-
-def populate_results():
-    #TODO: Solve the problem of adding new entries to the results database, as it is currently unpopulated.
-    # Create a series with all the requisite column values and append it to the results dataframe.
-    # Update individual round scores by accessing the score using the userid and round_[round number here] fields within a DataFrame search.
-    pass
-
-def update_player_result(user_id: int, round: int, points: float):
-    if any(user_id == results.userid):
-        results.loc[results.index[results['userid'] == user_id], f'round_{round}'] = points
-        write_to_fantasy_database('results', results, if_exists='replace')
-        logger.info(f"Updated {players.loc[players['userid'] == user_id, 'username'].item()}'s results: {results}")
-    else:
-        try:
-            # TODO: Add rounds to series using loop, with the number of iterations being the number of rounds from jolpica. DO NOT hard code the number of rounds.
-            result_record = pd.Series({
-                'userid': user_id,
-                'username': players.loc[players['userid'] == user_id, 'username'].item(),
-                'teamname': players.loc[players['userid'] == user_id, 'teamname'].item(),
-                'round1': 0,
-                'round2': 0,
-                'round3': 0,
-                'round4': 0,
-                'round5': 0,
-                'round6': 0,
-                'round7': 0,
-                'round8': 0,
-                'round9': 0,
-                'round10': 0,
-                'round11': 0,
-                'round12': 0,
-                'round13': 0,
-                'round14': 0,
-                'round15': 0,
-                'round16': 0,
-                'round17': 0,
-                'round18': 0,
-                'round19': 0,
-                'round20': 0,
-                'round21': 0,
-                'round22': 0,
-                'round23': 0,
-                'round24': 0})
-        except ValueError as e:
-            logger.error(f"User with id {user_id} does not exist! Please register the user before updating points.")
-            return
-
-        new_results = pd.concat([results, result_record.to_frame().T], ignore_index=True)
-        new_results.loc[new_results.index[new_results['userid'] == user_id], f'round{round}'] = points
-        write_to_fantasy_database('results', new_results, if_exists='replace')
-        logger.info(f"New results: {new_results}")
+        total_points = 0
+        for round_number in f1.event_schedule.RoundNumber:
+            total_points += results.loc[results['userid'] == player, f'round{round_number}'].item()
+            
+        players.loc[players['userid'] == player, 'points'] = total_points
+        write_to_fantasy_database('players', players, if_exists='replace')
+        logger.info(f"Updated {players.loc[players['userid'] == player, 'username'].item()}'s season points! ({total_points} points)")
 
 #endregion
 
 
 
 if __name__ == '__main__':
-    create_timings_table()
+    update_player_points()
     pass
