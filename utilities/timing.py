@@ -1,8 +1,6 @@
 # TODO: Implement automatic round changing and timezone conversions for all relevant
 #   information methods such as grand-prix info, team and draft.
-import os.path
-
-# TODO: Implement draft deadlines and draft freeze windows
+import pytz
 import pandas as pd
 import utilities.postgresql as sql
 import settings
@@ -38,7 +36,7 @@ def populate_timings_table():
     sql.write_to_fantasy_database('timings', populated_timings)
 
 def draft_deadline_passed(user_tz: str) -> bool:
-    current_time = pd.Timestamp.now(tz=user_tz).tz_localize(None)
+    current_time = pd.Timestamp.now(tz=user_tz)
     timings_table = sql.retrieve_timings()
     
     round_deadline = timings_table.loc[timings_table['round'] == settings.F1_ROUND, 'deadline'].item()
@@ -53,5 +51,5 @@ def draft_deadline_passed(user_tz: str) -> bool:
 
 
 if __name__ == '__main__':
-    logger.info(draft_deadline_passed(user_tz='US/Pacific'))
+    logger.info(pytz.all_timezones)
     #populate_timings_table()
