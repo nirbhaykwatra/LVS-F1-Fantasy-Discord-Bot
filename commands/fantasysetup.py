@@ -1,6 +1,5 @@
 import discord
 from discord import app_commands
-from discord.app_commands import Choice
 from discord.ext import commands
 
 import settings
@@ -28,7 +27,7 @@ class FantasySetup(commands.Cog):
 
         if guild is not None:
 
-            for event in range(1, len(season['RoundNumber'])):
+            for event in range(0, len(season['RoundNumber'])):
                 logger.info(f"Round {event} ----------------------------------------------------------------------")
 
                 name = season['OfficialEventName'][event]
