@@ -1,11 +1,8 @@
-import datetime
-
+import json
 import discord
-import pandas as pd
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands
-
 import settings
 from utilities import postgresql as sql
 from utilities import drstatslib as stats
@@ -25,32 +22,118 @@ class FantasyAdmin(commands.Cog):
     @admin_group.command(name='update-player-points', description='Update player points, as of the given round.')
     @app_commands.checks.has_role('Administrator')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
-    #TODO: Replace round int with Grand Prix choices, Choice(name=grand_prix_full_name, value=gp_round_int)
-    async def update_player_points(self, interaction: discord.Interaction, grand_prix: Choice[str]):
+    async def update_player_points(self, interaction: discord.Interaction, grand_prix: Choice[str], quali_results: str, race_results: str, sprint_results: str = "none", sprint_quali_results: str = "none"):
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        results = sql.results
+        driver_info = f1.get_driver_info(season='current')
+        
+        race_results = race_results.split()
+        quali_results = quali_results.split()
+        sprint_results = sprint_results.split()
+        sprint_quali_results = sprint_quali_results.split()
+        
         for player in sql.players.userid:
+            
             player_table = sql.retrieve_player_table(int(player))
+            
             try:
-                results = f1.ergast.get_race_results(settings.F1_SEASON, grand_prix.value).content[0]
-            except IndexError as e:
-                results = None
-                logger.warning(f'{grand_prix.value} has no results. Try updating points later!')
-                await interaction.response.send_message(f'{grand_prix.value} has no results. Try updating points later!')
+                player_team = {
+                    "driver1" : player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item(),
+                    "driver2" : player_table.loc[player_table['round'] == int(grand_prix.value), 'driver2'].item(),
+                    "driver3" : player_table.loc[player_table['round'] == int(grand_prix.value), 'driver3'].item(),
+                    "bogey_driver" : player_table.loc[player_table['round'] == int(grand_prix.value), 'wildcard'].item(),
+                    "team" : player_table.loc[player_table['round'] == int(grand_prix.value), 'constructor'].item(),
+                }
+            except ValueError as e:
+                embed_no_team = discord.Embed(title=f'No team found for {sql.players.loc[sql.players['userid'] == player, 'username'].item()}!', color=discord.Color.red())
+                await interaction.followup.send(f"", embed=embed_no_team, ephemeral=True)
                 return
-
-            #logger.info(f"Player table: {player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1']}")
-
-            player_team = {
-                # "driver1": player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item(),
-                # "driver2": player_table.loc[player_table['round'] == int(grand_prix.value), 'driver2'].item(),
-                # "driver3": player_table.loc[player_table['round'] == int(grand_prix.value), 'driver3'].item(),
-                # "wildcard": player_table.loc[player_table['round'] == int(grand_prix.value), 'wildcard'].item(),
-                # "constructor": player_table.loc[player_table['round'] == int(grand_prix.value), 'constructor'].item()
+            
+            top_three_drivers = [player_team['driver1'], player_team['driver2'], player_team['driver3']]
+            bogey_driver = player_team['bogey_driver']
+            team = player_team['team']
+            
+            total_points = 0
+            points_breakdown = {
+                "driver1" : 0,
+                "driver2" : 0,
+                "driver3" : 0,
+                "bogey_driver" : 0,
+                "team" : 0,
             }
+            
+            constructor_points = {}
+            constructor_points_sorted = {}
+            
+            # Add points for top 3 drivers and add constructor points
+            
+            #region Conventional
+            for index, driver in enumerate(race_results):
+                if index <= 9:
+                    if driver in top_three_drivers:
+                        total_points += settings.RACE_POINTS[index]
+                        points_breakdown[list(player_team.keys())[list(player_team.values()).index(driver)]] = settings.RACE_POINTS[index]
 
-            results_drivers = results.driverCode
-            drivers_top10 = results_drivers.head(10)
+                    driverId = driver_info.loc[driver_info['driverCode'] == driver, ['driverId']].squeeze()
+                    constructor = f1.ergast.get_constructor_info(season='current', driver=driverId).constructorId.squeeze()
+                    
+                    if constructor not in constructor_points:
+                        constructor_points[constructor] = settings.RACE_POINTS[index]
+                    else:
+                        constructor_points[constructor] += settings.RACE_POINTS[index]
+                        
+                if driver == bogey_driver:
+                    total_points += settings.BOGEY_POINTS[index]
+                    points_breakdown[list(player_team.keys())[list(player_team.values()).index(driver)]] = settings.BOGEY_POINTS[index]
+            #endregion
+                    
+            # Output list of constructors sorted by total points
+            constructor_points_sorted = sorted(constructor_points.items(), key=lambda item: item[1], reverse=True)
+            constructor_points_sorted_dict = dict(constructor_points_sorted)
+            constructor_points_sorted_list = list(constructor_points_sorted_dict.keys())
+            
+            # Add points if chosen constructor is in top 5 items of sorted list
+            for index, constructor in enumerate(constructor_points_sorted_list):
+                if index <= 4:
+                    if constructor == team:
+                        total_points += settings.CONSTRUCTOR_POINTS[index]
+                        points_breakdown["team"] = settings.CONSTRUCTOR_POINTS[index]
+                        
+            # If sprint results were given, calculate sprint points
+            if sprint_results != "none":
+                for index, driver in enumerate(sprint_results):
+                    if index <= 9:
+                        if driver in top_three_drivers:
+                            total_points += settings.SPRINT_POINTS[index]
+                            points_breakdown[list(player_team.keys())[list(player_team.values()).index(driver)]] = settings.SPRINT_POINTS[index]
 
-            logger.info(f'Top 10 drivers for {grand_prix.name}: {drivers_top10}')
+                    if driver == bogey_driver:
+                        total_points += settings.BOGEY_POINTS_SPRINT[index]
+                        points_breakdown[list(player_team.keys())[list(player_team.values()).index(driver)]] = settings.BOGEY_POINTS_SPRINT[index]
+                        
+            # Update database
+            
+            # Store dict as json for SQL table
+            points_breakdown_json = json.dumps(points_breakdown)
+            results.loc[results['userid'] == player, f'round{grand_prix.value}'] = total_points
+            results.loc[results['userid'] == player, f'round{grand_prix.value}breakdown'] = [points_breakdown_json]
+            
+            logger.info(f"Points breakdown db: {results.loc[results['userid'] == player, f'round{grand_prix.value}breakdown']}")
+            
+            sql.update_player_points()
+            sql.write_to_fantasy_database('results', results)
+            sql.results = sql.import_results_table()
+            sql.players = sql.import_players_table()
+            
+        embed_points = discord.Embed(
+            title=f'Points for the {grand_prix.name} have been updated!',
+            description=f'To check your points breakdown, use /points with the specified grand prix.',
+            color=settings.EMBED_COLOR
+        )    
+        
+        await interaction.followup.send(embed=embed_points, ephemeral=True)
 
     @admin_group.command(name='update-driver-stats', description='Update driver statistics, as of the given round.')
     @app_commands.checks.has_role('Administrator')
@@ -91,7 +174,9 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def remove_player(self, interaction: discord.Interaction, player: discord.User):
         sql.players = sql.players[sql.players.userid != player.id]
+        sql.results = sql.results[sql.results.userid != player.id]
         sql.write_to_fantasy_database('players', sql.players)
+        sql.write_to_fantasy_database('results', sql.results)
         sql.remove_player_table(player.id)
         await interaction.response.send_message(f'Removed {player.name} from the league.', ephemeral=True)
 
