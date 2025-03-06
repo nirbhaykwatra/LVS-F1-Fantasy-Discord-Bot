@@ -1,23 +1,15 @@
 from dateutil.relativedelta import relativedelta
 import settings
 import discord
+import pandas as pd
 from discord import app_commands
 from discord.ext import commands
 from utilities import fastf1util as f1
 from utilities import datautils as dt
-from utilities import drstatslib as stats
 from utilities import postgresql as sql
-from fastf1 import plotting
 from datetime import datetime
 
 logger = settings.create_logger('fantasy-fastf1')
-
-try:
-    drivers_standings = f1.get_drivers_standings(datetime.now().year)
-except IndexError as e:
-    drivers_standings = f1.get_drivers_standings(datetime.now().year - 1)
-    logger.warning(
-        f"Unable to retrieve driver standings for the year {datetime.now().year}! Retrieved driver standings for the year {datetime.now().year - 1} instead.")
 
 #region Cog
 class Formula1(commands.Cog):
@@ -33,6 +25,13 @@ class Formula1(commands.Cog):
     async def get_driver_data(self, interaction: discord.Interaction, driver: dt.Choice[str]):
 
         logger.info(f"Command 'driver' executed with name {driver.name} (TLA: {driver.value})")
+
+        try:
+            drivers_standings = f1.get_drivers_standings(datetime.now().year)
+        except IndexError as e:
+            drivers_standings = f1.get_drivers_standings(datetime.now().year - 1)
+            logger.warning(
+                f"Unable to retrieve driver standings for the year {datetime.now().year}! Retrieved driver standings for the year {datetime.now().year - 1} instead.")
 
         #region Driver Info embed
         driver_info_embed = discord.Embed(title=f'{driver.name}',
@@ -99,7 +98,65 @@ class Formula1(commands.Cog):
     async def get_grand_prix_data(self, interaction: discord.Interaction, grand_prix: dt.Choice[str]):
         #TODO: Create embed with grand prix circuit, country and start time information. If there are some interesting historical stats,
         # those would be nice too.
-        await interaction.response.send_message(f'Here is your grand prix info: ', ephemeral=True)
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        event_schedule = f1.event_schedule
+        circuit_info = f1.ergast.get_circuits(season='current')
+        user_tz = sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item()
+        
+        grand_prix_info = event_schedule.loc[event_schedule['RoundNumber'] == int(grand_prix.value)]
+        grand_prix_circuit = circuit_info.loc[circuit_info['circuitId'] == dt.circuit_map[grand_prix.value], 'circuitName']
+        
+        session1Utc: pd.Timestamp = grand_prix_info.Session1DateUtc.item().tz_localize('UTC')
+        session2Utc: pd.Timestamp = grand_prix_info.Session2DateUtc.item().tz_localize('UTC')
+        session3Utc: pd.Timestamp = grand_prix_info.Session3DateUtc.item().tz_localize('UTC')
+        session4Utc: pd.Timestamp = grand_prix_info.Session4DateUtc.item().tz_localize('UTC')
+        session5Utc: pd.Timestamp = grand_prix_info.Session5DateUtc.item().tz_localize('UTC')
+
+        
+        embed = discord.Embed(title=f"{grand_prix_info.OfficialEventName.item()}",
+                              description=f"{grand_prix_circuit.item()}",
+                              colour=settings.EMBED_COLOR)
+
+        if grand_prix_info.EventFormat.item() == "conventional":
+            embed.set_author(name=f"Grand Prix")
+        if grand_prix_info.EventFormat.item() == "sprint_qualifying":
+            embed.set_author(name=f"Sprint")
+            
+        
+        embed.add_field(name="Weekend Overview",
+                        value="",
+                        inline=False)
+        embed.add_field(name="Friday",
+                        value="...........................................................................",
+                        inline=False)
+
+        embed.add_field(name=f"{grand_prix_info.Session1.item()}",
+                        value=f"{session1Utc.astimezone(user_tz).strftime('%d %B %Y at %I:%M %p')}",
+                        inline=True)
+        embed.add_field(name=f"{grand_prix_info.Session2.item()}",
+                        value=f"{session2Utc.astimezone(user_tz).strftime('%d %B %Y at %I:%M %p')}",
+                        inline=True)
+        embed.add_field(name="Saturday",
+                        value="...........................................................................",
+                        inline=False)
+        embed.add_field(name=f"{grand_prix_info.Session3.item()}",
+                        value=f"{session3Utc.astimezone(user_tz).strftime('%d %B %Y at %I:%M %p')}",
+                        inline=True)
+        embed.add_field(name=f"{grand_prix_info.Session4.item()}",
+                        value=f"{session4Utc.astimezone(user_tz).strftime('%d %B %Y at %I:%M %p')}",
+                        inline=True)
+        embed.add_field(name="Sunday",
+                        value=".............................................................................",
+                        inline=False)
+        embed.add_field(name=f"{grand_prix_info.Session5.item()}",
+                        value=f"{session5Utc.astimezone(user_tz).strftime('%d %B %Y at %I:%M %p')}",
+                        inline=True)
+        
+        embed.set_image(url=f"https://media.formula1.com/image/upload/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/{dt.img_url_map[grand_prix.value]}_Circuit")
+                
+        await interaction.followup.send(embed=embed, ephemeral=True)
 
 
 async def setup(bot: commands.Bot) -> None:
