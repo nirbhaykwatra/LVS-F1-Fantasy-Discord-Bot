@@ -69,8 +69,9 @@ class FantasyDebug(commands.Cog):
 
     @debug_group.command(name='set-current-round', description='Set the current round.')
     @app_commands.checks.has_role('Administrator')
-    async def set_current_round(self, interaction: discord.Interaction, round_number: int):
-        settings.F1_ROUND = round_number
+    @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
+    async def set_current_round(self, interaction: discord.Interaction, grand_prix: Choice[str]):
+        settings.F1_ROUND = grand_prix.value
         await interaction.response.send_message(f'Current round set to round {settings.F1_ROUND}', ephemeral=True)
 
     @debug_group.command(name='show-current-round', description='Show the current round.')
