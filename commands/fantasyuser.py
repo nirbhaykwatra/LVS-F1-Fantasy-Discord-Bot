@@ -312,6 +312,28 @@ class FantasyUser(commands.Cog):
         if user is None:
             user = interaction.user
 
+        try:
+            if not any(sql.players.userid == user.id):
+
+                unregistered_embed = discord.Embed(
+                    title=f"You are not registered!",
+                    description=f" Please register to view teams!",
+                    colour=settings.EMBED_COLOR
+                )
+
+                await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+                return
+        except ValueError as e:
+
+            unregistered_embed = discord.Embed(
+                title=f"You are not registered!",
+                description=f" Please register to view teams!",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+            return
+
         player_table = sql.retrieve_player_table(user.id)
         # TODO: Add except to handle retrieval of driver info if driver info is not yet populated.
         #  For example, if the season has not begun but the year has incremented; if the driver info for 2025 is not available, retrieve for 2024
