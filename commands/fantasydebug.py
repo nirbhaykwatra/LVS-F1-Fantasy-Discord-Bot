@@ -115,8 +115,9 @@ class FantasyDebug(commands.Cog):
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def reset_round_points(self, interaction: discord.Interaction, grand_prix: Choice[str], user: discord.User = None):
         if user is None:
-            sql.results.loc[f'round{grand_prix.value}'] = 0
-            sql.results.loc[f'round{grand_prix.value}breakdown'] = None
+            for player in sql.results.userid:
+                sql.results.loc[sql.results.userid == player, f'round{grand_prix.value}'] = 0
+                sql.results.loc[sql.results.userid == player, f'round{grand_prix.value}breakdown'] = None
         else:
             sql.results.loc[sql.results['userid'] == user.id, f'round{grand_prix.value}'] = 0
             sql.results.loc[sql.results['userid'] == user.id, f'round{grand_prix.value}breakdown'] = None
