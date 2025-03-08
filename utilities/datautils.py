@@ -6,6 +6,7 @@ from discord.app_commands import Choice
 from datetime import datetime, timedelta
 import pandas as pd
 import json
+import pathlib as pt
 
 logger = settings.create_logger('data-utils')
 
@@ -54,14 +55,16 @@ points_breakdown_map = {
 td = timedelta()
 all_tz = pytz.all_timezones
 
-with open(f"{settings.BASE_DIR}\\data\\drivers\\excluded_drivers.json") as file:
+excluded_driver_path = pt.Path(settings.BASE_DIR) / 'data' / 'drivers' / 'excluded_drivers.json'
+
+with open(excluded_driver_path) as file:
     exclude_drivers = json.load(file)
 file.close()
 
 def write_excluded_drivers():
-    with open(f"{settings.BASE_DIR}\\data\\drivers\\excluded_drivers.json", "w") as out_file:
+    with open(excluded_driver_path, "w") as out_file:
         json.dump(exclude_drivers, out_file)
-    file.close()
+    out_file.close()
 
 def get_full_team_name(team: str):
     return team_names_full[team]
@@ -127,5 +130,5 @@ def grand_prix_choice_list() -> []:
     return grand_prixs_list
 
 if __name__ == '__main__':
-    logger.info(f"{drivers_choice_list()}")
+    logger.info(f"")
     pass
