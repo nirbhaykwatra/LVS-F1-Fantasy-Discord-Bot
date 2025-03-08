@@ -133,6 +133,18 @@ def import_timings_table() -> pd.DataFrame:
     else:
         logger.error(f'Could not import timings table as there is no connection to PostgreSQL.')
 
+def import_counterpick_table() -> pd.DataFrame:
+    if conn is not None:
+        try:
+            counterpick = pd.read_sql_table('counterpick', conn)
+        except ValueError as e:
+            write_to_fantasy_database('counterpick', pd.DataFrame(columns=['round', 'pickinguser', 'targetuser', 'targetdriver']), if_exists='replace')
+            counterpick = pd.read_sql_table('counterpick', conn)
+        logger.info(f'Imported counterpick table')
+        return results
+    else:
+        logger.error(f'Could not import counterpick table as there is no connection to PostgreSQL.')
+
 #endregion
 
 #region Table Imports
@@ -140,6 +152,7 @@ def import_timings_table() -> pd.DataFrame:
 players = import_players_table()
 results = import_results_table()
 timings = import_timings_table()
+counterpick = import_counterpick_table()
 
 #endregion
 
