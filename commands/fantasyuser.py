@@ -433,7 +433,7 @@ class FantasyUser(commands.Cog):
 
     @app_commands.command(name='exhausted', description='View your team exhaustions.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
-    async def exhausted(self, interaction: discord.Interaction):
+    async def exhausted(self, interaction: discord.Interaction, user: discord.User):
         player_table = sql.retrieve_player_table(interaction.user.id)
         
         last_team = player_table[player_table['round'] == settings.F1_ROUND - 1].squeeze()
