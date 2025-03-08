@@ -53,7 +53,7 @@ except Exception as e:
 
 def create_player_table(user_id: int):
     player_db = pd.DataFrame(
-        columns=['round', 'driver1', 'driver2', 'driver3', 'wildcard', 'constructor']
+        columns=['round', 'driver1', 'driver2', 'driver3', 'wildcard', 'constructor', 'counterpick']
     )
 
     write_to_player_database(str(user_id), player_db, if_exists='replace')
