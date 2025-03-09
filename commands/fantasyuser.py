@@ -23,29 +23,15 @@ class FantasyUser(commands.Cog):
     @app_commands.choices(timezone=dt.timezone_choice_list())
     async def register(self, interaction: discord.Interaction,  timezone: dt.Choice[str], team_name: str, team_motto: str = "The one and only!"):
 
-        try:
-            if not any(sql.players.userid == interaction.user.id):
-
-                unregistered_embed = discord.Embed(
-                    title=f"You are not registered!",
-                    description=f" Please register to draft!",
-                    colour=settings.EMBED_COLOR
-                )
-
-                await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
-                return
-        except ValueError as e:
-
-            unregistered_embed = discord.Embed(
-                title=f"You are not registered!",
-                description=f" Please register to draft!",
+        await interaction.response.defer(ephemeral=True)
+        
+        if interaction.user.id in sql.players.userid.to_list():
+            registered_embed = discord.Embed(
+                title=f"You are already registered!",
                 colour=settings.EMBED_COLOR
             )
-
-            await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+            await interaction.followup.send(embed=registered_embed, ephemeral=True)
             return
-
-        await interaction.response.defer(ephemeral=True)
 
         #region Create new player Series
         player_record = pd.Series({'username': interaction.user.name,
@@ -65,6 +51,12 @@ class FantasyUser(commands.Cog):
         
         for event in range(0, len(f1.event_schedule.RoundNumber.to_list())):
             sql.results.loc[sql.results['userid'] == interaction.user.id, f'round{event + 1}'] = 0
+        
+        sql.create_player_table(interaction.user.id)
+        sql.write_to_fantasy_database('players', sql.players)
+        sql.write_to_fantasy_database('results', sql.results)
+        sql.import_players_table()
+        sql.import_results_table()
         
         logger.info(f"Registered player {interaction.user.name}.")
 
@@ -97,10 +89,6 @@ class FantasyUser(commands.Cog):
                             inline=True)
         embed.set_image(url=interaction.user.display_avatar.url)
         #endregion
-        sql.create_player_table(interaction.user.id)
-        sql.write_to_fantasy_database('players', sql.players)
-        sql.write_to_fantasy_database('results', sql.results)
-        sql.import_players_table()
 
         await interaction.followup.send(f'Registered player {interaction.user.name}!', embed=embed, ephemeral=True)
 
@@ -111,29 +99,21 @@ class FantasyUser(commands.Cog):
                           driver3=dt.drivers_choice_list(),
                           bogey_driver=dt.drivers_choice_list(),
                           team=dt.constructor_choice_list(),
+                          grand_prix=dt.grand_prix_choice_list()
                           )
     async def draft(self, interaction: discord.Interaction,
                     driver1: Choice[str],
                     driver2: Choice[str],
                     driver3: Choice[str],
                     bogey_driver: Choice[str],
-                    team: Choice[str]):
+                    team: Choice[str],
+                    grand_prix: Choice[str] | None):
 
         await interaction.response.defer(ephemeral=True)
 
-        try:
-            if not any(sql.players.userid == interaction.user.id):
-    
-                unregistered_embed = discord.Embed(
-                    title=f"You are not registered!",
-                    description=f" Please register to draft!",
-                    colour=settings.EMBED_COLOR
-                )
-    
-                await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
-                return
-        except ValueError as e:
-            
+
+        if interaction.user.id not in sql.players.userid.to_list():
+
             unregistered_embed = discord.Embed(
                 title=f"You are not registered!",
                 description=f" Please register to draft!",
@@ -142,16 +122,21 @@ class FantasyUser(commands.Cog):
 
             await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
             return
-
-        grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
-                            value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
-                            )
+        
+        if grand_prix is None:
+            grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
+                                value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
+                                )
+        else:
+            grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == int(grand_prix.value), "EventName"].item(),
+                                value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == int(grand_prix.value), "RoundNumber"].item()
+                                )
         
         # Deadline check
         embed_deadline = discord.Embed(title="The draft deadline has passed!", description="In case of extraordinary circumstances, contact the league administrator to see if they can "
                                                                                            "draft your team for you.", colour=settings.EMBED_COLOR)
         
-        bDraftDeadlinePassed = timing.draft_deadline_passed(sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item())
+        bDraftDeadlinePassed = timing.has_deadline_passed(int(grand_prix.value), sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item(), 'deadline')
         
         if bDraftDeadlinePassed:
             await interaction.followup.send(embed=embed_deadline, ephemeral=True)
@@ -300,30 +285,19 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='team', description='View your team.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
-    async def team(self, interaction: discord.Interaction, grand_prix: Choice[str] | None, user: discord.User = None):
+    async def team(self, interaction: discord.Interaction, grand_prix: Choice[str] | None, user: discord.User = None, hidden: bool = True):
         
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer(ephemeral=hidden)
 
         if grand_prix is None:
+            logger.info(f"team: Round number: {settings.F1_ROUND}, type {type(settings.F1_ROUND)}")
             grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
                                 value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
                                 )
-
         if user is None:
             user = interaction.user
 
-        try:
-            if not any(sql.players.userid == user.id):
-
-                unregistered_embed = discord.Embed(
-                    title=f"You are not registered!",
-                    description=f" Please register to view teams!",
-                    colour=settings.EMBED_COLOR
-                )
-
-                await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
-                return
-        except ValueError as e:
+        if interaction.user.id not in sql.players.userid.to_list():
 
             unregistered_embed = discord.Embed(
                 title=f"You are not registered!",
@@ -333,6 +307,15 @@ class FantasyUser(commands.Cog):
 
             await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
             return
+        
+        if user.id != interaction.user.id:
+            embed_deadline = discord.Embed(title="The draft deadline has not yet passed!", description="You cannot view other players' teams before the draft "
+                                                                                                       "deadline has passed.", colour=settings.EMBED_COLOR)
+            bDraftDeadlinePassed = timing.has_deadline_passed(int(grand_prix.value), sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item(), 'deadline')
+        
+            if not bDraftDeadlinePassed:
+                await interaction.followup.send(embed=embed_deadline, ephemeral=True)
+                return
 
         player_table = sql.retrieve_player_table(user.id)
         # TODO: Add except to handle retrieval of driver info if driver info is not yet populated.
@@ -377,7 +360,7 @@ class FantasyUser(commands.Cog):
                             value="Constructor", inline=True)
             # endregion
 
-            await interaction.followup.send(f'',embed=embed, ephemeral=True)
+            await interaction.followup.send(f'',embed=embed, ephemeral=hidden)
 
         else:
             # region Team Embed
@@ -423,25 +406,43 @@ class FantasyUser(commands.Cog):
             else:
                 embed_fallback = discord.Embed(
                     title=f"{sql.players.loc[sql.players['userid'] == user.id, 'teamname'].item()}",
-                    description=f"There is no team set for round {grand_prix.value} or the previous round."
+                    description=f"There is no team set for round {grand_prix.value} or the previous round.",
+                    colour=settings.EMBED_COLOR
                 )
                 embed_fallback.set_author(name=str(user.name))
                 embed_fallback.set_thumbnail(url=user.display_avatar.url)
 
-                await interaction.followup.send(f'', embed=embed_fallback, ephemeral=True)
+                await interaction.followup.send(f'', embed=embed_fallback, ephemeral=hidden)
 
 
     @app_commands.command(name='exhausted', description='View your team exhaustions.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
-    async def exhausted(self, interaction: discord.Interaction, user: discord.User):
-        player_table = sql.retrieve_player_table(interaction.user.id)
+    async def exhausted(self, interaction: discord.Interaction, user: discord.User = None):
+        
+        await interaction.response.defer(ephemeral=True)
+        
+        if user is None:
+            user = interaction.user
+
+        if interaction.user.id not in sql.players.userid.to_list():
+
+            unregistered_embed = discord.Embed(
+                title=f"You are not registered!",
+                description=f" Please register to view exhaustions!",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+            return
+        
+        player_table = sql.retrieve_player_table(user.id)
         
         last_team = player_table[player_table['round'] == settings.F1_ROUND - 1].squeeze()
         second_last_team = player_table[player_table['round'] == settings.F1_ROUND - 2].squeeze()
         
         common = pd.Series(list(set(last_team).intersection(set(second_last_team))))
         
-        embed = discord.Embed(title="Exhausted Drivers", colour=settings.EMBED_COLOR)
+        embed = discord.Embed(title=f"Exhausted Drivers for {user.name}", colour=settings.EMBED_COLOR)
         
         for element in common:
             embed.add_field(name=f"{element}", value=f"Exhausted", inline=False)
@@ -710,9 +711,26 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='player-profile', description="View a player's profile.")
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def player_profile(self, interaction: discord.Interaction, user: discord.User):
-        if not any(sql.players.userid == user.id):
-            logger.error(f'User {user.name} with user ID {user.id} is not registered.')
-            await interaction.response.send_message(f'{user.name} is not registered!', ephemeral=True)
+        try:
+            if not any(sql.players.userid == user.id):
+
+                unregistered_embed = discord.Embed(
+                    title=f"You are not registered!",
+                    description=f" Please register to view player profiles!",
+                    colour=settings.EMBED_COLOR
+                )
+
+                await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+                return
+        except ValueError as e:
+
+            unregistered_embed = discord.Embed(
+                title=f"You are not registered!",
+                description=f" Please register to view player profiles!",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
             return
 
         # region Player Profile embed
@@ -756,22 +774,13 @@ class FantasyUser(commands.Cog):
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def points_breakdown(self, interaction: discord.Interaction, grand_prix: Choice[str]):
         await interaction.response.defer(ephemeral=True)
-        try:
-            if not any(sql.players.userid == interaction.user.id):
 
-                unregistered_embed = discord.Embed(
-                    title=f"You are not registered!",
-                    description=f" Please register to view points!",
-                    colour=settings.EMBED_COLOR
-                )
-
-                await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
-                return
-        except ValueError as e:
+        if interaction.user.id not in sql.players.userid.to_list():
 
             unregistered_embed = discord.Embed(
                 title=f"You are not registered!",
-                description=f" Please register to view points!",
+                description=f"You don't even have any points, what do you want to see a points breakdown for?"
+                            f"What would that even look like?",
                 colour=settings.EMBED_COLOR
             )
 
@@ -844,19 +853,69 @@ class FantasyUser(commands.Cog):
 
     @app_commands.command(name='edit-motto', description='Edit your team motto.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
-    async def edit_team_motto(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f'Team motto changed.', ephemeral=True)
+    async def edit_team_motto(self, interaction: discord.Interaction, motto: str):
+
+        if interaction.user.id not in sql.players.userid.to_list():
+
+            unregistered_embed = discord.Embed(
+                title=f"You are not registered!",
+                description=f"You need to have a team in order to have a team motto. Register to get a team.",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+            return
+        
+        sql.players.loc[sql.players['userid'] == interaction.user.id, 'teammotto'] = motto
+        sql.write_to_fantasy_database('players', sql.players)
+        sql.import_players_table()
+        
+        motto_embed = discord.Embed(
+            title=f"Team motto changed for {sql.players.loc[sql.players['userid'] == interaction.user.id, 'teamname'].item()}"
+        )
+        await interaction.response.send_message(embed=motto_embed, ephemeral=True)
 
     @app_commands.command(name='edit-team-name', description='Edit your team name.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
-    async def edit_team_name(self, interaction: discord.Interaction):
-        await interaction.response.send_message(f'Team name changed.', ephemeral=True)
+    async def edit_team_name(self, interaction: discord.Interaction, team_name: str):
+
+        if interaction.user.id not in sql.players.userid.to_list():
+
+            unregistered_embed = discord.Embed(
+                title=f"You are not registered!",
+                description=f"You don't have a team. What team name?",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+            return
+        
+        sql.players.loc[sql.players['userid'] == interaction.user.id, 'teamname'] = team_name
+        sql.write_to_fantasy_database('players', sql.players)
+        sql.import_players_table()
+
+        team_name_embed = discord.Embed(
+            title=f"Team name changed to {sql.players.loc[sql.players['userid'] == interaction.user.id, 'teamname'].item()}",
+            description=f"Owned by {sql.players.loc[sql.players['userid'] == interaction.user.id, 'username'].item()}"
+        )
+        await interaction.response.send_message(embed=team_name_embed, ephemeral=True)
 
     @app_commands.command(name='edit-timezone', description='Edit your timezone. Make sure to enter a valid pytz timezone.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def edit_timezone(self, interaction: discord.Interaction, timezone: str):
         
         await interaction.response.defer(ephemeral=True)
+
+        if interaction.user.id not in sql.players.userid.to_list():
+
+            unregistered_embed = discord.Embed(
+                title=f"You are not registered!",
+                description=f"Please register to set a timezone!",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+            return
         
         all_tz = dt.all_tz
         
@@ -882,5 +941,4 @@ async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyUser(bot))
 
 if __name__ == '__main__':
-    logger.info(f1.ergast.get_constructor_standings(season=2024).content[0].constructorId[5:].to_list())
     pass
