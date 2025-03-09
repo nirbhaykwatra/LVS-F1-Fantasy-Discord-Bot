@@ -128,8 +128,11 @@ def import_timings_table() -> pd.DataFrame:
         try:
             timings = pd.read_sql_table('timings', conn)
             return timings
+        
         except ValueError as e:
             logger.info(f'Could not import timings table as it does not exist.')
+
+        logger.info(f'Imported timings table')
     else:
         logger.error(f'Could not import timings table as there is no connection to PostgreSQL.')
 
@@ -141,7 +144,7 @@ def import_counterpick_table() -> pd.DataFrame:
             write_to_fantasy_database('counterpick', pd.DataFrame(columns=['round', 'pickinguser', 'targetuser', 'targetdriver']), if_exists='replace')
             counterpick = pd.read_sql_table('counterpick', conn)
         logger.info(f'Imported counterpick table')
-        return results
+        return counterpick
     else:
         logger.error(f'Could not import counterpick table as there is no connection to PostgreSQL.')
 
@@ -177,8 +180,16 @@ def initialise_players(frame: pd.DataFrame) -> pd.DataFrame:
     frame[frame_columns] = None
     return frame
 
+def initialise_counterpick(frame: pd.DataFrame) -> pd.DataFrame:
+    frame_columns = ['round', 'pickinguser', 'targetuser', 'targetdriver']
+    frame[frame_columns] = None
+    buffer_series = pd.Series({'round': 0, 'pickinguser': 12345, 'targetuser': 12345, 'targetdriver': "TLA"}).to_frame().T
+    frame_buffer = pd.concat([frame, buffer_series], ignore_index=True)
+    return frame_buffer
+
 bIsPlayersEmpty = players.empty
 bIsResultsEmpty = results.empty
+bIsCounterpickEmpty = counterpick.empty
 
 if bIsPlayersEmpty:
     players = initialise_players(players)
@@ -189,6 +200,11 @@ if bIsResultsEmpty:
     results = initialise_results(results)
     write_to_fantasy_database('results', results, if_exists='replace')
     logger.info(f'Initialised results table: {results}')
+    
+if bIsCounterpickEmpty:
+    counterpick = initialise_counterpick(counterpick)
+    write_to_fantasy_database('counterpick', counterpick, if_exists='replace')
+    logger.info(f'Initialised counterpick table: {counterpick}')
 
 #endregion
 
@@ -209,5 +225,5 @@ def update_player_points():
 
 
 if __name__ == '__main__':
-    update_player_points()
+
     pass
