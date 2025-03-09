@@ -220,12 +220,29 @@ class FantasyUser(commands.Cog):
         if bNoDriverFromConstructor:
             await interaction.followup.send(embed=embed_team, ephemeral=True)
         
+        # Check if a driver has been counter-picked
+        current_round_counterpicks = sql.counterpick[(sql.counterpick['round'] == grand_prix.value) & (sql.counterpick['targetuser'] == interaction.user.id)].targetdriver.array
+        embed_counterpick = discord.Embed(title="Invalid Draft!", description="The following drivers have been banned by counterpick for this round!", colour=settings.EMBED_COLOR)
+        bDriverCounterpicked = False
+        
+        for driver in current_round_counterpicks:
+            if driver1.value == driver or driver2.value == driver or driver3.value == driver or bogey_driver.value == driver:
+                embed_counterpick.add_field(name=f"{driver_info.loc[driver_info['driverCode'] == driver, 'givenName'].item()} "
+                                                 f"{driver_info.loc[driver_info['driverCode'] == driver, 'familyName'].item()}", value=f"Banned!", inline=False)
+                bDriverCounterpicked = True
+        
+        if bDriverCounterpicked:
+            await interaction.followup.send(embed=embed_counterpick, ephemeral=True)
+        
+        logger.info(f"Current round counterpicks: {current_round_counterpicks}")
+        
         #endregion
         
-        bDraftInvalid = bBogeyDriverTeamInvalid or bNoDriverFromConstructor or bPickExhausted or bHasDuplicateConstructor
+        bDraftInvalid = bBogeyDriverTeamInvalid or bNoDriverFromConstructor or bPickExhausted or bHasDuplicateConstructor or bDriverCounterpicked
         
         if bDraftInvalid:
             return 
+            
         
         # Operation to modify the database table has to be done before creating the embed, as the embed will error out
         # if there are no values in the table
@@ -240,8 +257,6 @@ class FantasyUser(commands.Cog):
             )
         #region Team Embed
         player_table = sql.retrieve_player_table(interaction.user.id)
-        # TODO: Add except to handle retrieval of driver info if driver info is not yet populated.
-        #  For example, if the season has not begun but the year has incremented; if the driver info for 2025 is not available, retrieve for 2024
         driver_info = f1.get_driver_info(settings.F1_SEASON)
     
         tla_driver1 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item()
@@ -290,7 +305,6 @@ class FantasyUser(commands.Cog):
         await interaction.response.defer(ephemeral=hidden)
 
         if grand_prix is None:
-            logger.info(f"team: Round number: {settings.F1_ROUND}, type {type(settings.F1_ROUND)}")
             grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
                                 value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
                                 )
@@ -318,9 +332,10 @@ class FantasyUser(commands.Cog):
                 return
 
         player_table = sql.retrieve_player_table(user.id)
-        # TODO: Add except to handle retrieval of driver info if driver info is not yet populated.
-        #  For example, if the season has not begun but the year has incremented; if the driver info for 2025 is not available, retrieve for 2024
-        driver_info = f1.get_driver_info(settings.F1_SEASON)
+        driver_info = f1.get_driver_info(season='current')
+        current_round_counterpicks = sql.counterpick[(sql.counterpick['round'] == grand_prix.value) & (sql.counterpick['targetuser'] == interaction.user.id)].targetdriver.array
+
+        #TODO: Add section for showing counter picked drivers in team embed
 
         # region Team Embed
         embed = discord.Embed(
@@ -358,6 +373,14 @@ class FantasyUser(commands.Cog):
                             value="Bogey Driver", inline=True)
             embed.add_field(name=f"{em_team}",
                             value="Constructor", inline=True)
+            
+            if current_round_counterpicks.size != 0:
+                embed.add_field(name=f"Counter Pick Information", value=f"For the {grand_prix.name}.", inline=False)
+                for driver in current_round_counterpicks:
+                    embed.add_field(name=f"{driver_info.loc[driver_info['driverCode'] == driver, 'givenName'].item()} "
+                                         f"{driver_info.loc[driver_info['driverCode'] == driver, 'familyName'].item()}", value=f"Banned for this round!", inline=True)
+                    
+            
             # endregion
 
             await interaction.followup.send(f'',embed=embed, ephemeral=hidden)
@@ -400,6 +423,12 @@ class FantasyUser(commands.Cog):
                                 value="Wildcard", inline=True)
                 embed_previous.add_field(name=f"{em_team}",
                                 value="Constructor", inline=True)
+
+                if current_round_counterpicks.size != 0:
+                    embed.add_field(name=f"Counter Pick Information", value=f"For the {grand_prix.name}.", inline=False)
+                for driver in current_round_counterpicks:
+                    embed.add_field(name=f"{driver_info.loc[driver_info['driverCode'] == driver, 'givenName'].item()} "
+                                         f"{driver_info.loc[driver_info['driverCode'] == driver, 'familyName'].item()}", value=f"Banned for this round!", inline=True)
                 # endregion
 
                 await interaction.followup.send(f'', embed=embed_previous, ephemeral=True)
