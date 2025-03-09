@@ -448,7 +448,262 @@ class FantasyUser(commands.Cog):
         
         logger.info(f'Last team: {last_team}\n Second last team: {second_last_team}\n Common team: {common}')
         
-        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+    @app_commands.command(name='counter-pick', description=f"Choose a driver to ban from a player's team for a specific round.")
+    @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
+    @app_commands.choices(grand_prix=dt.grand_prix_choice_list(),
+                          driver=dt.drivers_choice_list())
+    async def counter_pick(self, interaction: discord.Interaction, user: discord.User, driver: Choice[str], grand_prix: Choice[str] | None):
+
+        if interaction.user.id not in sql.players.userid.to_list():
+
+            unregistered_embed = discord.Embed(
+                title=f"You are not registered!",
+                description=f" Please register to counter-pick!",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.response.send_message(embed=unregistered_embed, ephemeral=True)
+            return
+        
+        if user.id not in sql.players.userid.to_list():
+            unregistered_embed = discord.Embed(
+                title=f"{user.name} is not registered!",
+                description=f"You cannot counter-pick a user who is not registered! ",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.response.send_message(embed=unregistered_embed, ephemeral=True)
+            return
+
+        if grand_prix is None:
+            grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
+                                value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
+                                )
+        
+        # Deadline check
+        bHasCounterpickDeadlinePassed = timing.has_deadline_passed(int(grand_prix.value), sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item(), 'counterpick_deadline')
+        
+        embed_deadline = discord.Embed(title="The counter-pick deadline has passed!", description="You can no longer use or modify your counter-pick for this race.", colour=settings.EMBED_COLOR)
+        if bHasCounterpickDeadlinePassed:
+            await interaction.response.send_message(embed=embed_deadline, ephemeral=True)
+            return
+
+        # Register new counterpick for a given round
+        if interaction.user.id not in sql.counterpick[sql.counterpick['round'] == int(grand_prix.value)].pickinguser.to_list():
+            # If user's id exists in the counterpick table more times than the counterpick limit, interrupt counter-picking
+            number_of_counterpicks = len(sql.counterpick[sql.counterpick['pickinguser'] == interaction.user.id].pickinguser.array)
+            if number_of_counterpicks >= settings.COUNTERPICK_LIMIT:
+                counter_pick_limit_embed = discord.Embed(
+                    title=f"No Counter Picks Left!",
+                    description=f"You have exhausted all of your counter picks! Try revoking counter picks by using the grand-prix option on the /revoke-counter-pick command!",
+                    colour=settings.EMBED_COLOR
+                )
+                await interaction.response.send_message(embed=counter_pick_limit_embed, ephemeral=True)
+                return
+
+            # If a driver has already been counter picked for a given player, interrupt counter-picking
+            if driver.value in sql.counterpick[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['targetuser'] == user.id)].targetdriver:
+                driver_counterpick_embed = discord.Embed(
+                    title=f"Counter Pick Invalid!",
+                    description=f"**{driver.name}** is already counter-picked against **{user.name}** for the **{grand_prix.name}**! Try counter-picking another driver!",
+                    colour=settings.EMBED_COLOR
+                )
+                await interaction.response.send_message(embed=driver_counterpick_embed, ephemeral=True)
+                return
+            
+            # If a target user exists in the given round in the counterpick table more times than the driver ban limit, interrupt counter-picking
+            counterpick_target_drivers = len(sql.counterpick[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['targetuser'] == user.id)].targetuser)
+            if counterpick_target_drivers >= settings.DRIVER_BAN_LIMIT:
+                counterpick_drivers_embed = discord.Embed(
+                    title=f"Counter Pick Invalid!",
+                    description=f"**{user.name}** is not available to counter-pick against for the **{grand_prix.name}**! Try counter-picking another player!",
+                    colour=settings.EMBED_COLOR
+                )
+                await interaction.response.send_message(embed=counterpick_drivers_embed, ephemeral=True)
+                return
+            
+            # Create new counter-pick entry
+            counterpick_record = pd.Series(
+                {
+                    'round': int(grand_prix.value),
+                    'pickinguser': interaction.user.id,
+                    'targetuser': user.id,
+                    'targetdriver': driver.value
+                }
+            )
+            sql.counterpick = pd.concat([sql.counterpick, counterpick_record.to_frame().T], ignore_index=True)
+            sql.write_to_fantasy_database('counterpick', sql.counterpick)
+            sql.counterpick = sql.import_counterpick_table()
+            counter_pick_embed = discord.Embed(
+                title=f"Counter Pick Used!",
+                description=f"",
+                colour=settings.EMBED_COLOR
+            )
+            counter_pick_embed.set_author(name=f"ANNOUNCEMENT")
+
+            counter_pick_embed.add_field(name="Round",
+                                         value=f"**{grand_prix.name}**",
+                                         inline=False)
+            counter_pick_embed.add_field(name="Picking User",
+                                         value=f"{interaction.user.name}",
+                                         inline=True)
+            counter_pick_embed.add_field(name="Target Driver",
+                                         value=f"{driver.name}",
+                                         inline=True)
+            counter_pick_embed.add_field(name="Target User",
+                                         value=f"{user.name}",
+                                         inline=True)
+
+            await interaction.response.send_message(embed=counter_pick_embed, ephemeral=False)
+            return
+        
+        # If a driver has already been counter picked for a given player, interrupt counter-picking
+        if driver.value in sql.counterpick[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['targetuser'] == user.id)].targetdriver.array:
+            driver_counterpick_embed = discord.Embed(
+                title=f"Counter Pick Invalid!",
+                description=f"**{driver.name}** is already counter-picked against **{user.name}** for the **{grand_prix.name}**! Try counter-picking another driver!",
+                colour=settings.EMBED_COLOR
+            )
+            await interaction.response.send_message(embed=driver_counterpick_embed, ephemeral=True)
+            return
+        
+        
+        # Modify previously existing counter-pick
+        sql.counterpick.loc[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['pickinguser'] == interaction.user.id), 'targetuser'] = user.id
+        sql.counterpick.loc[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['pickinguser'] == interaction.user.id), 'targetdriver'] = driver.value
+
+        sql.write_to_fantasy_database('counterpick', sql.counterpick)
+        sql.counterpick = sql.import_counterpick_table()
+        
+        counter_pick_embed = discord.Embed(
+            title=f"Counter Pick Modified!",
+            description=f"",
+            colour=settings.EMBED_COLOR
+        )
+        
+        counter_pick_embed.set_author(name=f"ANNOUNCEMENT")
+
+        counter_pick_embed.add_field(name="Round",
+                        value=f"**{grand_prix.name}**",
+                        inline=False)
+        counter_pick_embed.add_field(name="Picking User",
+                        value=f"{interaction.user.name}",
+                        inline=True)
+        counter_pick_embed.add_field(name="Target Driver",
+                        value=f"{driver.name}",
+                        inline=True)
+        counter_pick_embed.add_field(name="Target User",
+                        value=f"{user.name}",
+                        inline=True)
+        
+        await interaction.response.send_message(embed=counter_pick_embed, ephemeral=False)
+
+    @app_commands.command(name='revoke-counter-pick', description=f"Revoke your counter-pick for a given round.")
+    @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
+    @app_commands.choices(grand_prix=dt.grand_prix_choice_list()
+                          )
+    async def revoke_counter_pick(self, interaction: discord.Interaction, grand_prix: Choice[str] | None):
+
+        if interaction.user.id not in sql.players.userid.to_list():
+
+            unregistered_embed = discord.Embed(
+                title=f"You are not registered!",
+                description=f"How can you have a counter pick to revoke if you're not registered? Do not use this command.",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.response.send_message(embed=unregistered_embed, ephemeral=True)
+            return
+
+        if grand_prix is None:
+            grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
+                                value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
+                                )
+
+        # Deadline check
+        bHasCounterpickDeadlinePassed = timing.has_deadline_passed(int(grand_prix.value), sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item(), 'counterpick_deadline')
+
+        embed_deadline = discord.Embed(title="The counter-pick deadline has passed!", description="You can no longer revoke counter-pick for this race.", colour=settings.EMBED_COLOR)
+        if bHasCounterpickDeadlinePassed:
+            await interaction.response.send_message(embed=embed_deadline, ephemeral=True)
+            return
+        
+        if int(grand_prix.value) not in sql.counterpick.loc[sql.counterpick['pickinguser'] == interaction.user.id]['round'].array:
+            embed_invalid = discord.Embed(title="No Counter Pick Made!", description=f"You have not made any counter-pick for the {grand_prix.name}.", colour=settings.EMBED_COLOR)
+            await interaction.response.send_message(embed=embed_invalid, ephemeral=True)
+            return
+
+        counterpick = sql.counterpick.loc[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['pickinguser'] == interaction.user.id)]
+        
+        sql.counterpick = sql.counterpick.drop(counterpick.index.values)
+
+        sql.write_to_fantasy_database('counterpick', sql.counterpick)
+        sql.counterpick = sql.import_counterpick_table()
+
+        counter_pick_embed = discord.Embed(
+            title=f"Counter Pick Revoked!",
+            description=f"{interaction.user.name} has revoked their counter pick for the {grand_prix.name}!",
+            colour=settings.EMBED_COLOR
+        )
+
+        counter_pick_embed.set_author(name=f"IMPORTANT")
+
+        await interaction.response.send_message(embed=counter_pick_embed, ephemeral=False)
+
+    @app_commands.command(name='check-counter-pick', description=f"Check your counter pick status.")
+    @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
+    async def check_counter_pick(self, interaction: discord.Interaction):
+        await interaction.response.defer(ephemeral=True)
+        
+        if interaction.user.id not in sql.players.userid.to_list():
+
+            unregistered_embed = discord.Embed(
+                title=f"You are not registered!",
+                description=f" Please register to counter-pick!",
+                colour=settings.EMBED_COLOR
+            )
+
+            await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
+            return
+
+        embed = discord.Embed(title="Counter Pick Status",
+                             colour=settings.EMBED_COLOR)
+
+        embed.add_field(name=f"{settings.COUNTERPICK_LIMIT - len(sql.counterpick[sql.counterpick['pickinguser'] == interaction.user.id].pickinguser.array)}",
+                        value="Counter Picks Available",
+                        inline=False)
+        embed.add_field(name="Active Counter Picks",
+                        value="-----------------------------------",
+                        inline=False)
+        
+        player_counter_picks: pd.DataFrame = sql.counterpick[sql.counterpick['pickinguser'] == interaction.user.id]
+        driver_info = f1.get_driver_info(season='current')
+        
+        for pick in player_counter_picks.itertuples(index=False):
+            embed.add_field(name=f"{f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == pick.round, "EventName"].item()}",
+                            value="",
+                            inline=False)
+            
+            user: discord.User = await self.bot.fetch_user(pick.targetuser)
+            
+            embed.add_field(name="Target Player",
+                            value=f"{user.name}",
+                            inline=True)
+            embed.add_field(name="Target Driver",
+                            value=f"{driver_info.loc[driver_info['driverCode'] == pick.targetdriver, "givenName"].item()} {driver_info.loc[driver_info['driverCode'] == pick.targetdriver, "familyName"].item()}",
+                            inline=True)
+
+            deadline_timestamp = sql.timings.loc[sql.timings['round'] == pick.round, 'counterpick_deadline'].item()
+
+            deadline: pd.Timestamp = deadline_timestamp.tz_localize('UTC')
+            
+            embed.add_field(name="Deadline",
+                            value=f"{deadline.astimezone(sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item()).strftime('%d %B %Y at %I:%M %p')}",
+                            inline=True)
+        
+        await interaction.followup.send(embed=embed, ephemeral=True)
     #endregion
 
     #region Player information
