@@ -72,6 +72,7 @@ class FantasyDebug(commands.Cog):
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def set_current_round(self, interaction: discord.Interaction, grand_prix: Choice[str]):
         settings.F1_ROUND = grand_prix.value
+        settings.settings['round'] = grand_prix.value
         await interaction.response.send_message(f'Current round set to round {settings.F1_ROUND}', ephemeral=True)
 
     @debug_group.command(name='show-current-round', description='Show the current round.')
@@ -84,6 +85,7 @@ class FantasyDebug(commands.Cog):
     async def increment_round(self, interaction: discord.Interaction, number_of_rounds: int):
         initial_round = settings.F1_ROUND
         settings.F1_ROUND += number_of_rounds
+        settings.settings['round'] = int(settings.settings['round']) + number_of_rounds
         await interaction.response.send_message(f"Current round set to {initial_round + number_of_rounds}.", ephemeral=True)
 
     @debug_group.command(name='decrement-round', description='Decrement the current round number.')
@@ -91,6 +93,7 @@ class FantasyDebug(commands.Cog):
     async def decrement_round(self, interaction: discord.Interaction, number_of_rounds: int):
         initial_round = settings.F1_ROUND
         settings.F1_ROUND -= number_of_rounds
+        settings.settings['round'] = int(settings.settings['round']) - number_of_rounds
         await interaction.response.send_message(f"Current round set to {initial_round - number_of_rounds}.", ephemeral=True)
 
     @debug_group.command(name='check-driver-teams', description='Check if two or more drivers are in the same team.')
@@ -102,14 +105,15 @@ class FantasyDebug(commands.Cog):
         
         await interaction.response.send_message(f"check-driver-teams command executed.", ephemeral=True)
 
-    @debug_group.command(name='check-draft-deadline', description='Check draft deadline for a given round.')
+    @debug_group.command(name='check-deadline', description='Check deadlines for a given round.')
     @app_commands.checks.has_role('Administrator')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
-    async def check_draft_deadline(self, interaction: discord.Interaction, grand_prix: Choice[str]):
+    async def check_deadline(self, interaction: discord.Interaction, grand_prix: Choice[str]):
         timings = sql.retrieve_timings()
         deadline = timings.loc[timings['round'] == int(grand_prix.value), 'deadline'].to_list()
         reset = timings.loc[timings['round'] == int(grand_prix.value), 'reset'].to_list()
-        await interaction.response.send_message(f"Draft deadline for {grand_prix.name} is {deadline[0]} and reset is {reset[0]}", ephemeral=True)
+        counterpick = timings.loc[timings['round'] == int(grand_prix.value), 'counterpick_deadline'].to_list()
+        await interaction.response.send_message(f"Draft deadline for {grand_prix.name} is {deadline[0]}\n Reset deadline is {reset[0]}\n Counter-pick deadline is {counterpick}", ephemeral=True)
 
     @debug_group.command(name='reset-round-points', description='Reset the points for a given round.')
     @app_commands.checks.has_role('Administrator')
@@ -130,6 +134,19 @@ class FantasyDebug(commands.Cog):
         
         await interaction.response.send_message(f"Reset points for {grand_prix.name}", ephemeral=True)
 
+    @debug_group.command(name='clear-counter-pick', description='Remove counterpick for a given round and user.')
+    @app_commands.checks.has_role('Administrator')
+    @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
+    async def clear_counter_pick(self, interaction: discord.Interaction, user: discord.User, grand_prix: Choice[str]):
+        
+        counterpick = sql.counterpick.loc[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['pickinguser'] == user.id)]
+
+        sql.counterpick = sql.counterpick.drop(counterpick.index.values)
+
+        sql.write_to_fantasy_database('counterpick', sql.counterpick)
+        sql.counterpick = sql.import_counterpick_table()
+        
+        await interaction.response.send_message(f"Removed counterpick for {user.name} at the {grand_prix.name}", ephemeral=True)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyDebug(bot))
