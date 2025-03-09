@@ -64,11 +64,6 @@ def get_session(year: int,
 #endregion
 
 if __name__=="__main__":
-    #event_schedule.to_csv(os.path.join(os.getcwd(), 'event_schedule.csv'))
-    for event in event_schedule.RoundNumber:
-        logger.info(f"{event}")
-        
-    #localized_time: pd.Timestamp = event.Session5DateUtc.item().tz_localize('UTC')
-        
+
     pass
         
