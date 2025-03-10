@@ -150,7 +150,8 @@ class FantasyAdmin(commands.Cog):
                 
         # Calculate points
         for player in sql.players.userid:
-            logger.info(f"Calculating player points for {await self.bot.fetch_user(player)}...")
+            user = await self.bot.fetch_user(player)
+            logger.info(f"Calculating player points for {user.name}...")
             player_table = sql.retrieve_player_table(int(player))
             
             try:
@@ -741,7 +742,31 @@ class FantasyAdmin(commands.Cog):
 
         await interaction.response.send_message(embed=counter_pick_embed, ephemeral=False)
 
+    @admin_group.command(name='view-counter-picks', description='View the counter-picks for a given round.')
+    @app_commands.checks.has_role('Administrator')
+    @app_commands.choices(
+        grand_prix=dt.grand_prix_choice_list()
+    )
+    async def view_counter_picks(self, interaction: discord.Interaction, grand_prix: Choice[str]):
+        current_round_counterpick = sql.counterpick[sql.counterpick['round'] == int(grand_prix.value)]
+        rounds = current_round_counterpick['round'].array
+        pickingusers = current_round_counterpick.pickinguser.array
+        targetusers = current_round_counterpick.targetuser.array
+        targetdrivers = current_round_counterpick.targetdriver.array
         
+        embed = discord.Embed(
+            title=f"**Counter Picks for the {grand_prix.name}**",
+        )
+        
+        for index in range(0, len(rounds)):
+            embed.add_field(name=f"Counter Pick {index + 1}", value="-------------------------", inline=False)
+            picking_user = await self.bot.fetch_user(pickingusers[index])
+            embed.add_field(name=f"Picking User", value=f"{picking_user.name}", inline=True)
+            target_user = await self.bot.fetch_user(targetusers[index])
+            embed.add_field(name=f"Target User", value=f"{target_user.name}", inline=True)
+            embed.add_field(name=f"Target Driver", value=f"{targetdrivers[index]}", inline=True)
+            
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyAdmin(bot))
