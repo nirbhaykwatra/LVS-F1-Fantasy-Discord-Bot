@@ -184,7 +184,7 @@ class FantasyUser(commands.Cog):
             await interaction.followup.send(embed=embed_exhausted, ephemeral=True)
 
         # Bogey Driver Check
-        driver_info = f1.get_driver_info(settings.F1_SEASON)
+        '''
         try:
             constructor_standings = f1.ergast.get_constructor_standings(season='current').content[0]
         except IndexError as e:
@@ -205,6 +205,7 @@ class FantasyUser(commands.Cog):
         
         if bBogeyDriverTeamInvalid:
             await interaction.followup.send(embed=embed_bogey, ephemeral=True)
+        '''
 
         #Check if more than 2 drivers are in the same team
         selected_drivers = [driver1.value, driver2.value, driver3.value, bogey_driver.value]
@@ -244,12 +245,11 @@ class FantasyUser(commands.Cog):
         
         if bDriverCounterpicked:
             await interaction.followup.send(embed=embed_counterpick, ephemeral=True)
-        
-        logger.info(f"Current round counterpicks: {current_round_counterpicks}")
+    
         
         #endregion
         
-        bDraftInvalid = bBogeyDriverTeamInvalid or bNoDriverFromConstructor or bPickExhausted or bHasDuplicateConstructor or bDriverCounterpicked
+        bDraftInvalid = bNoDriverFromConstructor or bPickExhausted or bHasDuplicateConstructor or bDriverCounterpicked or bHasDuplicateDriver
         
         if bDraftInvalid:
             return 
