@@ -43,15 +43,6 @@ img_url_map = {
     "17": "Baku", "18": "Singapore", "19": "USA", "20": "Mexico",
     "21": "Brazil", "22": "Las_Vegas", "23": "Qatar", "24": "Abu_Dhabi"
 }
-
-points_breakdown_map = {
-    'driver1' : "Driver 1",
-    'driver2' : "Driver 2",
-    'driver3' : "Driver 3",
-    'bogey_driver' : "Bogey Driver",
-    'team' : "Constructor",
-}
-
 td = timedelta()
 all_tz = pytz.all_timezones
 
