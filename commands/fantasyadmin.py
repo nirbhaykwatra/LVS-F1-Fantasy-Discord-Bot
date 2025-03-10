@@ -1,4 +1,5 @@
 import json
+import random
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
@@ -20,21 +21,132 @@ class FantasyAdmin(commands.Cog):
                                      description='A group of admin commands.',
                                      guild_ids=[settings.GUILD_ID])
 
+    async def is_team_invalid(self, random_team, player_table, user, grand_prix) -> bool:
+
+        driver1 = random_team['driver1']
+        driver2 = random_team['driver2']
+        driver3 = random_team['driver3']
+        bogey_driver = random_team['bogey_driver']
+        team = random_team['team']
+        driver_info = f1.get_driver_info(settings.F1_SEASON)
+    
+        # Duplicate Check
+        team_list = [driver1, driver2, driver3, bogey_driver]
+    
+        bHasDuplicateDriver = len(team_list) != len(set(team_list))
+    
+        # Exhausted Check        
+        last_team = player_table[player_table['round'] == settings.F1_ROUND - 1].squeeze()
+        second_last_team = player_table[player_table['round'] == settings.F1_ROUND - 2].squeeze()
+    
+        common = pd.Series(list(set(last_team).intersection(set(second_last_team))))
+    
+        exhausted = []
+    
+        for element in common:
+            if driver1 == element or driver2 == element or driver3 == element or bogey_driver == element:
+                exhausted.append(element)
+    
+            if team == element:
+                exhausted.append(element)
+    
+        bPickExhausted = len(exhausted) != 0
+    
+        # Bogey Driver Check
+        '''
+        try:
+            constructor_standings = f1.ergast.get_constructor_standings(season='current').content[0]
+        except IndexError as e:
+            constructor_standings = f1.ergast.get_constructor_standings(season=settings.F1_SEASON - 1).content[0]
+            logger.warning(
+                f"Unable to retrieve driver standings for the year {settings.F1_SEASON}! Retrieved driver standings for the year {settings.F1_SEASON - 1} instead.")
+    
+        constructor_list = constructor_standings.constructorId.to_list()
+    
+        last_five_constructors = constructor_list[5:]
+    
+        bogey_id = driver_info.loc[driver_info['driverCode'] == bogey_driver, ['driverId']].squeeze()
+        bogey_constructor = f1.ergast.get_constructor_info(season='current', driver=bogey_id).constructorId.squeeze()
+    
+        bBogeyDriverTeamInvalid = bogey_constructor not in last_five_constructors
+        '''
+    
+        #Check if more than 2 drivers are in the same team
+        selected_drivers = [driver1, driver2, driver3, bogey_driver]
+    
+        driverIds = []
+        selected_constructors = []
+    
+        for driver in selected_drivers:
+            driverIds.append(driver_info.loc[driver_info['driverCode'] == driver, ['driverId']].squeeze())
+    
+        for driver in driverIds:
+            selected_constructors.append(f1.ergast.get_constructor_info(season='current', driver=driver).constructorId.squeeze())
+    
+        bHasDuplicateConstructor = len(set(selected_constructors)) < 3
+    
+        bNoDriverFromConstructor = team not in selected_constructors
+    
+        # Check if a driver has been counter-picked
+        current_round_counterpicks = sql.counterpick[(sql.counterpick['round'] == grand_prix.value) & (sql.counterpick['targetuser'] == int(user))].targetdriver.array
+        bDriverCounterpicked = False
+    
+        for driver in current_round_counterpicks:
+            if driver1 == driver or driver2 == driver or driver3 == driver or bogey_driver == driver:
+                bDriverCounterpicked = True
+    
+        #endregion
+    
+        bDraftInvalid = bNoDriverFromConstructor or bPickExhausted or bHasDuplicateConstructor or bDriverCounterpicked or bHasDuplicateDriver
+    
+        return bDraftInvalid
+
     @admin_group.command(name='update-player-points', description='Update player points, as of the given round.')
     @app_commands.checks.has_role('Administrator')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
-    async def update_player_points(self, interaction: discord.Interaction, grand_prix: Choice[str], quali_results: str, race_results: str, sprint_results: str = "none", sprint_quali_results: str = "none"):
+    async def update_player_points(self, interaction: discord.Interaction, grand_prix: Choice[str], quali_results: str, race_results: str, sprint_results: str = "none", sprint_quali_results: str = "none", hidden: bool = True):
         
-        await interaction.response.defer(ephemeral=True)
+        await interaction.response.defer(ephemeral=hidden)
         
         results = sql.results
         driver_info = f1.get_driver_info(season='current')
+        constructor_info = f1.ergast.get_constructor_info(season='current')
         
         race_results = race_results.split()
         quali_results = quali_results.split()
         sprint_results = sprint_results.split()
         sprint_quali_results = sprint_quali_results.split()
         
+        undrafted_players = []
+        
+        # Assign random team if none exists
+        for index, player in enumerate(sql.players.userid):
+            player_table = sql.retrieve_player_table(int(player))
+            user = await self.bot.fetch_user(int(player))
+            
+            if int(grand_prix.value) not in player_table['round'].to_list():
+                logger.info(f"Player {user.name} does not have a team for the {grand_prix.name}. Assigning random team to {user.name}.")
+                undrafted_players.insert(index, player)
+                while True:
+                    random_team = {
+                        "driver1": random.choice(driver_info.driverCode.to_list()),
+                        "driver2": random.choice(driver_info.driverCode.to_list()),
+                        "driver3": random.choice(driver_info.driverCode.to_list()),
+                        "bogey_driver": random.choice(driver_info.driverCode.to_list()),
+                        "team": random.choice(constructor_info.constructorId.to_list()),
+                    }
+                    if not await self.is_team_invalid(random_team, player_table, player, grand_prix):
+                        logger.info(f"Found valid team for {player}!: {random_team}")
+                        sql.draft_to_table(
+                            user_id=int(player),
+                            round=int(grand_prix.value),
+                            driver1=random_team['driver1'],
+                            driver2=random_team['driver2'],
+                            driver3=random_team['driver3'],
+                            wildcard=random_team['bogey_driver'],
+                            team=random_team['team'],)
+                        break
+                
         for player in sql.players.userid:
             
             player_table = sql.retrieve_player_table(int(player))
