@@ -54,7 +54,9 @@ POSTGRES_BASE_URL = f'postgresql://{os.getenv('SQLUSER')}:{os.getenv('SQLPASS')}
 POSTGRES_PLAYER_BASE_URL = f'postgresql://{os.getenv('SQLUSER')}:{os.getenv('SQLPASS')}@{os.getenv('SQLHOST')}/players_{F1_SEASON}'
 
 RACE_POINTS = [22, 18, 15, 12, 10, 8, 6, 4, 2, 1]
+QUALI_POINTS = [5, 4, 3, 2, 1]
 SPRINT_POINTS = [5, 4, 3, 2, 1, -1, -2, -3, -4, -5]
+SPRINT_QUALI_POINTS = [3, 2, 1]
 CONSTRUCTOR_POINTS = [5, 4, 3, 2, 1]
 BOGEY_POINTS = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1, -0.5, -1, -1.5, -2, -2.5, -3, -3.5, -4, -4.5, -5]
 BOGEY_POINTS_SPRINT = [5, 5, 4, 4, 3, 3, 2, 2, 1, 1, -0.5, -0.5, -1, -1, -1.5, -1.5, -2, -2, -2.5, -2.5]
