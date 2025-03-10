@@ -10,6 +10,7 @@ from utilities import fastf1util as f1
 import pandas as pd
 import df2img as df2
 import utilities.timing as timing
+from html2image import Html2Image
 
 logger = settings.create_logger('fantasy-user')
 
@@ -345,8 +346,6 @@ class FantasyUser(commands.Cog):
         player_table = sql.retrieve_player_table(user.id)
         driver_info = f1.get_driver_info(season='current')
         current_round_counterpicks = sql.counterpick[(sql.counterpick['round'] == grand_prix.value) & (sql.counterpick['targetuser'] == interaction.user.id)].targetdriver.array
-
-        #TODO: Add section for showing counter picked drivers in team embed
 
         # region Team Embed
         embed = discord.Embed(
@@ -869,7 +868,7 @@ class FantasyUser(commands.Cog):
     #TODO: Improve the points-table render. Use imgkit, wkhtmltopdf and jinja to convert dataframe to html, then html to image.
     @app_commands.command(name='points-table', description='View the points table.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
-    async def points_table(self, interaction: discord.Interaction):
+    async def points_table(self, interaction: discord.Interaction, hidden: bool = True):
         results_prep = sql.results.drop(axis=1, columns=['userid', 
                                                          'round1breakdown', 'round2breakdown', 'round3breakdown',
                                                          'round4breakdown', 'round5breakdown', 'round6breakdown',
@@ -880,38 +879,24 @@ class FantasyUser(commands.Cog):
                                                          'round19breakdown', 'round20breakdown', 'round21breakdown',
                                                          'round22breakdown', 'round23breakdown', 'round24breakdown'
                                                          ])
-        results = df2.plot_dataframe(results_prep, fig_size=(2560, 600), print_index=False,
-                                     title={
-                                         "automargin": True,
-                                         "yref": "container",
-                                         "text": "LVS Formula 1 League",
-                                         "font_family": "Formula1 Display",
-                                         "font_size": 30,
-                                         "font_color": "white",
-                                         "pad_l": 1000,
-                                         "pad_t": 5
-                                     },
-                                     tbl_header={
-                                         "font_family": "Formula1 Display",
-                                         "font_color": "white",
-                                         "fill_color": "rgba(26, 26, 26, 1)",
-                                         "font_size": 10,
-                                         "font_textcase": "upper",
-                                         "line_color": "rgba(26, 26, 26, 1)",
-                                         "height": 10
-                                     },
-                                     tbl_cells={
-                                         "font_family": "Formula1 Display",
-                                         "font_color": "white",
-                                         "fill_color": "rgba(26, 26, 26, 1)",
-                                         "font_size": 12,
-                                         "font_textcase": "upper",
-                                         "line_color": "rgba(26, 26, 26, 1)",
-                                     },
-                                     paper_bgcolor="rgba(26, 26, 26, 1)"
-                                     )
-        df2.save_dataframe(fig=results, filename=settings.BASE_DIR/"data"/"points_table.png")
-        await interaction.response.send_message(file=discord.File(f'{settings.BASE_DIR}/data/points_table.png'), ephemeral=True)
+        html = Html2Image(browser='chrome', browser_executable=settings.BROWSER_DIR, output_path=settings.BASE_DIR/"data", size=(3840, 1440))
+        results_html = results_prep.to_html(
+            index=False,
+            justify='center',
+            border=0,
+        )
+        html_formatted = f"""
+        <html>
+            <head>
+                <link href="style.css" rel="stylesheet" />
+            </head>
+            <body>
+            {results_html}
+            </body>
+        </html>
+        """
+        html.screenshot(html_str=html_formatted, css_file=[settings.BASE_DIR/"data"/"html"/"style.css"], save_as='points_table.png')
+        await interaction.response.send_message(file=discord.File(settings.BASE_DIR/"data"/"points_table.png"), ephemeral=hidden)
     #endregion
 
     @app_commands.command(name='edit-motto', description='Edit your team motto.')
