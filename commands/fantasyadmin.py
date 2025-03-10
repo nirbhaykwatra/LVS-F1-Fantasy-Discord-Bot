@@ -10,6 +10,7 @@ from utilities import postgresql as sql
 from utilities import drstatslib as stats
 from utilities import fastf1util as f1
 from utilities import datautils as dt
+from utilities import timing
 
 logger = settings.create_logger('fantasy-admin')
 
@@ -147,8 +148,9 @@ class FantasyAdmin(commands.Cog):
                             team=random_team['team'],)
                         break
                 
+        # Calculate points
         for player in sql.players.userid:
-            
+            logger.info(f"Calculating player points for {await self.bot.fetch_user(player)}...")
             player_table = sql.retrieve_player_table(int(player))
             
             try:
@@ -183,10 +185,16 @@ class FantasyAdmin(commands.Cog):
                 "driver2sprintquali": 0,
                 "driver3sprintquali": 0,
                 "bogey_driver" : 0,
+                "bogey_driver_sprint": 0,
                 "team" : 0,
             }
             
             constructor_points = {}
+
+            bogey_id = driver_info.loc[driver_info['driverCode'] == bogey_driver, ['driverId']].squeeze()
+            bogey_constructor = f1.ergast.get_constructor_info(season='current', driver=bogey_id).constructorId.squeeze()
+            constructor_drivers = f1.ergast.get_driver_info(season='current', constructor=bogey_constructor).driverCode.to_list()
+            bogey_teammate = constructor_drivers[0] if constructor_drivers[0] != bogey_driver else constructor_drivers[1]
             
             # Add points for top 3 drivers and add constructor points
             
@@ -204,10 +212,6 @@ class FantasyAdmin(commands.Cog):
                         constructor_points[constructor] = settings.RACE_POINTS[index]
                     else:
                         constructor_points[constructor] += settings.RACE_POINTS[index]
-
-                if driver == bogey_driver:
-                    total_points += settings.BOGEY_POINTS[index]
-                    points_breakdown[list(player_team.keys())[list(player_team.values()).index(driver)]] = settings.BOGEY_POINTS[index]
             
             for index, driver in enumerate(race_results):
                 if index <= 9:
@@ -222,10 +226,15 @@ class FantasyAdmin(commands.Cog):
                         constructor_points[constructor] = settings.RACE_POINTS[index]
                     else:
                         constructor_points[constructor] += settings.RACE_POINTS[index]
-                        
-                if driver == bogey_driver:
-                    total_points += settings.BOGEY_POINTS[index]
-                    points_breakdown[list(player_team.keys())[list(player_team.values()).index(driver)]] = settings.BOGEY_POINTS[index]
+            
+            teammate_delta_race = race_results.index(bogey_driver) - race_results.index(bogey_teammate)
+            
+            if teammate_delta_race < 0:
+                total_points += settings.BOGEY_POINTS[abs(teammate_delta_race)]
+                points_breakdown["bogey_driver"] = settings.BOGEY_POINTS[abs(teammate_delta_race)]
+            elif teammate_delta_race > 0:
+                total_points += -settings.BOGEY_POINTS[abs(teammate_delta_race)]
+                points_breakdown["bogey_driver"] = -settings.BOGEY_POINTS[abs(teammate_delta_race)]
             #endregion
                     
             # Output list of constructors sorted by total points
@@ -241,23 +250,30 @@ class FantasyAdmin(commands.Cog):
                         points_breakdown["team"] = settings.CONSTRUCTOR_POINTS[index]
                         
             # If sprint results were given, calculate sprint points
-            if sprint_results != "none":
-                for index, driver in enumerate(sprint_results):
-                    if index <= 9:
-                        if driver in top_three_drivers:
-                            total_points += settings.SPRINT_POINTS[index]
-                            points_breakdown[f"{list(player_team.keys())[list(player_team.values()).index(driver)]}sprint"] = settings.SPRINT_POINTS[index]
-
-                    if driver == bogey_driver:
-                        total_points += settings.BOGEY_POINTS_SPRINT[index]
-                        points_breakdown[list(player_team.keys())[list(player_team.values()).index(driver)]] = settings.BOGEY_POINTS_SPRINT[index]
-                        
-            if sprint_quali_results != "none":
-                for index, driver in enumerate(sprint_quali_results):
-                    if index <= 2:
-                        if driver in top_three_drivers:
-                            total_points += settings.SPRINT_QUALI_POINTS[index]
-                            points_breakdown[f"{list(player_team.keys())[list(player_team.values()).index(driver)]}sprintquali"] = settings.SPRINT_QUALI_POINTS[index]
+            if f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == int(grand_prix.value), "EventFormat"].item() == 'sprint_qualifying':
+                logger.info(f"It's a sprint weekend: {f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == int(grand_prix.value), "EventFormat"].item()}")
+                if sprint_results != "none":
+                    for index, driver in enumerate(sprint_results):
+                        if index <= 9:
+                            if driver in top_three_drivers:
+                                total_points += settings.SPRINT_POINTS[index]
+                                points_breakdown[f"{list(player_team.keys())[list(player_team.values()).index(driver)]}sprint"] = settings.SPRINT_POINTS[index]
+    
+                    teammate_delta_sprint = sprint_results.index(bogey_driver) - sprint_results.index(bogey_teammate)
+    
+                    if teammate_delta_sprint < 0:
+                        total_points += settings.BOGEY_POINTS[abs(teammate_delta_sprint)]
+                        points_breakdown["bogey_driver_sprint"] = settings.BOGEY_POINTS[abs(teammate_delta_sprint)]
+                    elif teammate_delta_sprint > 0:
+                        total_points += -settings.BOGEY_POINTS[abs(teammate_delta_sprint)]
+                        points_breakdown["bogey_driver_sprint"] = -settings.BOGEY_POINTS[abs(teammate_delta_sprint)]
+                            
+                if sprint_quali_results != "none":
+                    for index, driver in enumerate(sprint_quali_results):
+                        if index <= 2:
+                            if driver in top_three_drivers:
+                                total_points += settings.SPRINT_QUALI_POINTS[index]
+                                points_breakdown[f"{list(player_team.keys())[list(player_team.values()).index(driver)]}sprintquali"] = settings.SPRINT_QUALI_POINTS[index]
             # Update database
             
             # Store dict as json for SQL table
@@ -265,7 +281,7 @@ class FantasyAdmin(commands.Cog):
             results.loc[results['userid'] == player, f'round{grand_prix.value}'] = total_points
             results.loc[results['userid'] == player, f'round{grand_prix.value}breakdown'] = [points_breakdown_json]
             
-            sql.update_player_points()
+            sql.update_player_points(int(player))
             sql.write_to_fantasy_database('results', results)
             sql.results = sql.import_results_table()
             sql.players = sql.import_players_table()
