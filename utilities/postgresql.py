@@ -13,11 +13,11 @@ logger = settings.create_logger('sql')
 #region Utilities
 def write_to_fantasy_database(table: str, data: pd.DataFrame, if_exists: Literal["fail", "replace", "append"] = "replace", index: bool = False):
     result = data.to_sql(table, conn, if_exists=if_exists, index=index)
-    logger.info(f'Wrote to fantasy database: {data.info}')
+    logger.info(f'Wrote to fantasy database')
 
 def write_to_player_database(table: str, data: pd.DataFrame, if_exists: Literal["fail", "replace", "append"] = "replace", index: bool = False):
     result = data.to_sql(table, player_conn, if_exists=if_exists, index=index)
-    logger.info(f'Wrote to player database: {data.info}')
+    logger.info(f'Wrote to player database')
 #endregion
 
 # region Connect to fantasy database
@@ -210,15 +210,14 @@ if bIsCounterpickEmpty:
 
 #region Formula 1 Data
 
-def update_player_points():
-    for player in players.userid:
-        total_points = 0
-        for round_number in f1.event_schedule.RoundNumber:
-            total_points += results.loc[results['userid'] == player, f'round{round_number}'].item()
-            
-        players.loc[players['userid'] == player, 'points'] = total_points
-        write_to_fantasy_database('players', players, if_exists='replace')
-        logger.info(f"Updated {players.loc[players['userid'] == player, 'username'].item()}'s season points! ({total_points} points)")
+def update_player_points(player: int):
+    total_points = 0
+    for round_number in f1.event_schedule.RoundNumber:
+        total_points += results.loc[results['userid'] == player, f'round{round_number}'].item()
+        
+    players.loc[players['userid'] == player, 'points'] = total_points
+    write_to_fantasy_database('players', players, if_exists='replace')
+    logger.info(f"Updated {players.loc[players['userid'] == player, 'username'].item()}'s season points! ({total_points} points)")
 
 #endregion
 
