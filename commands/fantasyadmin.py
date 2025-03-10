@@ -167,6 +167,16 @@ class FantasyAdmin(commands.Cog):
                 return
             
             top_three_drivers = [player_team['driver1'], player_team['driver2'], player_team['driver3']]
+            
+            current_round_counterpicks = sql.counterpick[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['targetuser'] == player)].targetdriver.array
+            logger.info(f"Counterpicks for {user.name}: {current_round_counterpicks}")
+            if current_round_counterpicks != 0:
+                for index, driver in enumerate(top_three_drivers):
+                    if driver in current_round_counterpicks:
+                        top_three_drivers[top_three_drivers.index(driver)] = 'TLA'
+                        
+            logger.info(f"{user.name}'s team for the {grand_prix.value}: {top_three_drivers}")
+            
             bogey_driver = player_team['bogey_driver']
             team = player_team['team']
             
