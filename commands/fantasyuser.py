@@ -857,6 +857,7 @@ class FantasyUser(commands.Cog):
             embed_points.add_field(value=f"{breakdown['driver1sprint']} points", name=f"Driver 1", inline=True)
             embed_points.add_field(value=f"{breakdown['driver2sprint']} points", name=f"Driver 2", inline=True)
             embed_points.add_field(value=f"{breakdown['driver3sprint']} points", name=f"Driver 3", inline=True)
+            embed_points.add_field(value=f"{breakdown['bogey_driver_sprint']} points", name=f"Bogey Driver", inline=True)
 
             embed_points.add_field(name="Sprint Qualifying", value="------------------------", inline=False)
             embed_points.add_field(value=f"{breakdown['driver1sprintquali']} points", name=f"Driver 1", inline=True)
@@ -865,6 +866,7 @@ class FantasyUser(commands.Cog):
             
         await interaction.followup.send(embed=embed_points, ephemeral=True)
 
+    #TODO: Improve the points-table render. Use imgkit, wkhtmltopdf and jinja to convert dataframe to html, then html to image.
     @app_commands.command(name='points-table', description='View the points table.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def points_table(self, interaction: discord.Interaction):
