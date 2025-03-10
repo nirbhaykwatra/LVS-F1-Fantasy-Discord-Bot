@@ -219,6 +219,9 @@ def update_player_points(player: int):
     write_to_fantasy_database('players', players, if_exists='replace')
     logger.info(f"Updated {players.loc[players['userid'] == player, 'username'].item()}'s season points! ({total_points} points)")
 
+def update_all_player_points():
+    for player in players.userid:
+        update_player_points(player)
 #endregion
 
 
