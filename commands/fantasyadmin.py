@@ -173,16 +173,42 @@ class FantasyAdmin(commands.Cog):
                 "driver1" : 0,
                 "driver2" : 0,
                 "driver3" : 0,
+                "driver1sprint": 0,
+                "driver2sprint": 0,
+                "driver3sprint": 0,
+                "driver1quali": 0,
+                "driver2quali": 0,
+                "driver3quali": 0,
+                "driver1sprintquali": 0,
+                "driver2sprintquali": 0,
+                "driver3sprintquali": 0,
                 "bogey_driver" : 0,
                 "team" : 0,
             }
             
             constructor_points = {}
-            constructor_points_sorted = {}
             
             # Add points for top 3 drivers and add constructor points
             
-            #region Conventional
+            #region Race and Quali points calculation
+            for index, driver in enumerate(quali_results):
+                if index <= 4:
+                    if driver in top_three_drivers:
+                        total_points += settings.QUALI_POINTS[index]
+                        points_breakdown[f"{list(player_team.keys())[list(player_team.values()).index(driver)]}quali"] = settings.QUALI_POINTS[index]
+
+                    driverId = driver_info.loc[driver_info['driverCode'] == driver, ['driverId']].squeeze()
+                    constructor = f1.ergast.get_constructor_info(season='current', driver=driverId).constructorId.squeeze()
+
+                    if constructor not in constructor_points:
+                        constructor_points[constructor] = settings.RACE_POINTS[index]
+                    else:
+                        constructor_points[constructor] += settings.RACE_POINTS[index]
+
+                if driver == bogey_driver:
+                    total_points += settings.BOGEY_POINTS[index]
+                    points_breakdown[list(player_team.keys())[list(player_team.values()).index(driver)]] = settings.BOGEY_POINTS[index]
+            
             for index, driver in enumerate(race_results):
                 if index <= 9:
                     if driver in top_three_drivers:
@@ -220,20 +246,24 @@ class FantasyAdmin(commands.Cog):
                     if index <= 9:
                         if driver in top_three_drivers:
                             total_points += settings.SPRINT_POINTS[index]
-                            points_breakdown[list(player_team.keys())[list(player_team.values()).index(driver)]] = settings.SPRINT_POINTS[index]
+                            points_breakdown[f"{list(player_team.keys())[list(player_team.values()).index(driver)]}sprint"] = settings.SPRINT_POINTS[index]
 
                     if driver == bogey_driver:
                         total_points += settings.BOGEY_POINTS_SPRINT[index]
                         points_breakdown[list(player_team.keys())[list(player_team.values()).index(driver)]] = settings.BOGEY_POINTS_SPRINT[index]
                         
+            if sprint_quali_results != "none":
+                for index, driver in enumerate(sprint_quali_results):
+                    if index <= 2:
+                        if driver in top_three_drivers:
+                            total_points += settings.SPRINT_QUALI_POINTS[index]
+                            points_breakdown[f"{list(player_team.keys())[list(player_team.values()).index(driver)]}sprintquali"] = settings.SPRINT_QUALI_POINTS[index]
             # Update database
             
             # Store dict as json for SQL table
             points_breakdown_json = json.dumps(points_breakdown)
             results.loc[results['userid'] == player, f'round{grand_prix.value}'] = total_points
             results.loc[results['userid'] == player, f'round{grand_prix.value}breakdown'] = [points_breakdown_json]
-            
-            logger.info(f"Points breakdown db: {results.loc[results['userid'] == player, f'round{grand_prix.value}breakdown']}")
             
             sql.update_player_points()
             sql.write_to_fantasy_database('results', results)
@@ -242,7 +272,7 @@ class FantasyAdmin(commands.Cog):
             
         embed_points = discord.Embed(
             title=f'Points for the {grand_prix.name} have been updated!',
-            description=f'To check your points breakdown, use /points with the specified grand prix.',
+            description=f'To check your points breakdown, use /points-breakdown with the specified grand prix.',
             color=settings.EMBED_COLOR
         )    
         
@@ -547,6 +577,8 @@ class FantasyAdmin(commands.Cog):
                                      inline=True)
 
         await interaction.response.send_message(embed=counter_pick_embed, ephemeral=False)
+
+        
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyAdmin(bot))
