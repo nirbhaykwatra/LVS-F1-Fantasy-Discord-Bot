@@ -37,6 +37,7 @@ logger.info(f"Environment variables loaded.")
 BASE_DIR = pathlib.Path(__file__).parent
 CMDS_DIR = BASE_DIR/"commands"
 FASTF1_CACHE_DIR = BASE_DIR/"data"/"fastf1"/"cache"
+BROWSER_DIR = os.getenv('BROWSER_PATH')
 
 #region Fantasy Data
 with open(BASE_DIR / "settings.json", "r", encoding="utf-8") as settings_file:
