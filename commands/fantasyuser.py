@@ -131,6 +131,8 @@ class FantasyUser(commands.Cog):
             grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == int(grand_prix.value), "EventName"].item(),
                                 value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == int(grand_prix.value), "RoundNumber"].item()
                                 )
+
+        driver_info = f1.get_driver_info(settings.F1_SEASON)
         
         # Deadline check
         embed_deadline = discord.Embed(title="The draft deadline has passed!", description="In case of extraordinary circumstances, contact the league administrator to see if they can "
@@ -143,6 +145,15 @@ class FantasyUser(commands.Cog):
             return 
             
         #region Draft Checks
+        
+        # Duplicate Check
+        team_list = [driver1, driver2, driver3, bogey_driver]
+        
+        bHasDuplicateDriver = len(team_list) != len(set(team_list))
+
+        embed_duplicate = discord.Embed(title="Invalid Draft!", description="You have chosen one driver more than once! Please try again.", colour=settings.EMBED_COLOR)
+        if bHasDuplicateDriver:
+            await interaction.followup.send(embed=embed_duplicate, ephemeral=True)
         
         # Exhausted Check
         player_table = sql.retrieve_player_table(interaction.user.id)
