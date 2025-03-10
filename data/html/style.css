@@ -1,0 +1,51 @@
+/* spacing */
+table {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+    border: 0px solid rgb(0, 0, 0);
+    background-color: rgb(49, 51, 56);
+  }
+  th, td {
+    padding: 20%;
+  }
+
+/* typography */
+
+html {
+    font-family: "Formula1 Display", bold;
+    color: #ffffff;
+  }
+  
+  thead th,
+  tfoot th {
+    font-family: "Formula1 Display";
+    font-size: large;
+    word-wrap: break-word;
+    padding: 20px;
+    width: auto;
+  }
+  
+  th {
+    letter-spacing: 2px;
+  }
+  
+  td {
+    letter-spacing: 1px;
+    padding: 20px;
+    font-family: "Formula1 Display";
+    font-size: 20px;
+    font-weight: bold;
+    word-wrap: break-word;
+    width: auto;
+  }
+
+  tr:nth-child(even){background-color: rgb(46, 48, 53);}
+  
+  tbody td {
+    text-align: center;
+  }
+  
+  tfoot th {
+    text-align: right;
+  }
