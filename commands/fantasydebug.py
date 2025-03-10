@@ -130,7 +130,7 @@ class FantasyDebug(commands.Cog):
             
         sql.write_to_fantasy_database('results', sql.results)
         sql.results = sql.import_results_table()
-        sql.update_player_points()
+        sql.update_all_player_points()
         sql.players = sql.import_players_table()
         
         await interaction.response.send_message(f"Reset points for {grand_prix.name}", ephemeral=True)
@@ -138,16 +138,16 @@ class FantasyDebug(commands.Cog):
     @debug_group.command(name='clear-counter-pick', description='Remove counterpick for a given round and user.')
     @app_commands.checks.has_role('Administrator')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
-    async def clear_counter_pick(self, interaction: discord.Interaction, user: discord.User, grand_prix: Choice[str]):
+    async def clear_counter_pick(self, interaction: discord.Interaction, picking_user: discord.User, grand_prix: Choice[str]):
         
-        counterpick = sql.counterpick.loc[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['pickinguser'] == user.id)]
+        counterpick = sql.counterpick.loc[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['pickinguser'] == picking_user.id)]
 
         sql.counterpick = sql.counterpick.drop(counterpick.index.values)
 
         sql.write_to_fantasy_database('counterpick', sql.counterpick)
         sql.counterpick = sql.import_counterpick_table()
         
-        await interaction.response.send_message(f"Removed counterpick for {user.name} at the {grand_prix.name}", ephemeral=True)
+        await interaction.response.send_message(f"Removed counterpick for {picking_user.name} at the {grand_prix.name}", ephemeral=True)
 
     @debug_group.command(name='points-breakdown', description='View points breakdown for given grand prix.')
     @app_commands.checks.has_role('Administrator')
