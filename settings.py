@@ -54,7 +54,7 @@ F1_IMAGE_BASE_URL = "https://media.formula1.com/d_driver_fallback_image.png/cont
 POSTGRES_BASE_URL = f'postgresql://{os.getenv('SQLUSER')}:{os.getenv('SQLPASS')}@{os.getenv('SQLHOST')}/fantasy_{F1_SEASON}'
 POSTGRES_PLAYER_BASE_URL = f'postgresql://{os.getenv('SQLUSER')}:{os.getenv('SQLPASS')}@{os.getenv('SQLHOST')}/players_{F1_SEASON}'
 
-RACE_POINTS = [22, 18, 15, 12, 10, 8, 6, 4, 2, 1]
+RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
 QUALI_POINTS = [5, 4, 3, 2, 1]
 SPRINT_POINTS = [5, 4, 3, 2, 1, -1, -2, -3, -4, -5]
 SPRINT_QUALI_POINTS = [3, 2, 1]
