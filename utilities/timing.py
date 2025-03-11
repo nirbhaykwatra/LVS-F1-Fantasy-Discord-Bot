@@ -23,13 +23,13 @@ def populate_timings_table():
         if event_schedule.loc[event_schedule['EventName'] == event, 'EventFormat'].item() == 'sprint_qualifying' :
             deadline_record = pd.Series({'round': round_number, 
                                          'deadline': event_schedule.loc[event_schedule['EventName'] == event, 'Session2DateUtc'].item(), 
-                                         'reset': event_schedule.loc[event_schedule['EventName'] == event, 'Session5DateUtc'].item() + pd.Timedelta(hours=3),
+                                         'reset': event_schedule.loc[event_schedule['EventName'] == event, 'Session5DateUtc'].item() + pd.Timedelta(days=365),
                                          'counterpick_deadline': event_schedule.loc[event_schedule['EventName'] == event, 'Session2DateUtc'].item() + pd.Timedelta(days=-3),
                                          }).to_frame().T
         if event_schedule.loc[event_schedule['EventName'] == event, 'EventFormat'].item() == 'conventional' :
             deadline_record = pd.Series({'round': round_number,
                                          'deadline': event_schedule.loc[event_schedule['EventName'] == event, 'Session4DateUtc'].item(),
-                                         'reset': event_schedule.loc[event_schedule['EventName'] == event, 'Session5DateUtc'].item() + pd.Timedelta(hours=3),
+                                         'reset': event_schedule.loc[event_schedule['EventName'] == event, 'Session5DateUtc'].item() + pd.Timedelta(days=365),
                                          'counterpick_deadline': event_schedule.loc[event_schedule['EventName'] == event, 'Session4DateUtc'].item() + pd.Timedelta(days=-3),
                                          }).to_frame().T
         
@@ -58,5 +58,5 @@ def has_deadline_passed(round_number: int, user_tz: str, column_name: str) -> bo
 
 if __name__ == '__main__':
     #logger.info(pytz.all_timezones)
-    #populate_timings_table()
+    populate_timings_table()
     pass
