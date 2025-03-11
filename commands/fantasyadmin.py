@@ -23,6 +23,17 @@ class FantasyAdmin(commands.Cog):
                                      guild_ids=[settings.GUILD_ID])
 
     async def is_team_invalid(self, random_team, player_table, user, grand_prix) -> bool:
+        """
+        Check if a team follows the validation rules of the draft. Used when validating randomly generated
+        teams in the update_player_points method.
+            
+        Returns bool: Whether the team is invalid.
+        
+        :parameter random_team: The team to be validated.
+        :param player_table: The DataFrame which stores the teams of the player.
+        :param user: The Discord ID of the player.
+        :param grand_prix: The Grand Prix that the team is being assessed for.
+        """
 
         driver1 = random_team['driver1']
         driver2 = random_team['driver2']
