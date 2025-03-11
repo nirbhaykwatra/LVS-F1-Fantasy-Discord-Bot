@@ -26,7 +26,7 @@ class FantasySetup(commands.Cog):
 
         if guild is not None:
 
-            for event in range(0, len(season['RoundNumber'])):
+            for event in range(1, len(season['RoundNumber']) + 1):
                 logger.info(f"Round {event} ----------------------------------------------------------------------")
 
                 name = season['OfficialEventName'][event]
