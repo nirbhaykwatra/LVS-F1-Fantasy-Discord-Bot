@@ -490,6 +490,22 @@ class FantasyUser(commands.Cog):
         
         await interaction.followup.send(embed=embed, ephemeral=True)
 
+    @app_commands.command(name='check-deadline', description='Check deadlines for a given round.')
+    @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
+    @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
+    async def check_deadline(self, interaction: discord.Interaction, grand_prix: Choice[str]):
+
+        draft_timestamp = sql.timings.loc[sql.timings['round'] == int(grand_prix.value), 'deadline'].item()
+        counterpick_timestamp = sql.timings.loc[sql.timings['round'] == int(grand_prix.value), 'counterpick_deadline'].item()
+
+        draft: pd.Timestamp = draft_timestamp.tz_localize('UTC')
+        counterpick: pd.Timestamp = counterpick_timestamp.tz_localize('UTC')
+
+        embed = discord.Embed(title=f"Deadlines for the {grand_prix.name}", colour=settings.EMBED_COLOR)
+        embed.add_field(name=f"Draft Deadline", value=f"{draft.astimezone(sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item()).strftime('%d %B %Y at %I:%M %p')}")
+        embed.add_field(name=f"Counter-Pick Deadline", value=f"{counterpick.astimezone(sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item()).strftime('%d %B %Y at %I:%M %p')}")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+
     @app_commands.command(name='counter-pick', description=f"Choose a driver to ban from a player's team for a specific round.")
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list(),

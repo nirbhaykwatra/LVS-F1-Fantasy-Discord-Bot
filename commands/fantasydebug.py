@@ -4,6 +4,7 @@ from discord.app_commands import Choice
 from discord.ext import commands
 import settings
 import json
+import pandas as pd
 from utilities import postgresql as sql
 from utilities import fastf1util as f1
 from utilities import datautils as dt
@@ -110,11 +111,20 @@ class FantasyDebug(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def check_deadline(self, interaction: discord.Interaction, grand_prix: Choice[str]):
-        timings = sql.retrieve_timings()
-        deadline = timings.loc[timings['round'] == int(grand_prix.value), 'deadline'].to_list()
-        reset = timings.loc[timings['round'] == int(grand_prix.value), 'reset'].to_list()
-        counterpick = timings.loc[timings['round'] == int(grand_prix.value), 'counterpick_deadline'].to_list()
-        await interaction.response.send_message(f"Draft deadline for {grand_prix.name} is {deadline[0]}\n Reset deadline is {reset[0]}\n Counter-pick deadline is {counterpick}", ephemeral=True)
+
+        draft_timestamp = sql.timings.loc[sql.timings['round'] == int(grand_prix.value), 'deadline'].item()
+        reset_timestamp = sql.timings.loc[sql.timings['round'] == int(grand_prix.value), 'reset'].item()
+        counterpick_timestamp = sql.timings.loc[sql.timings['round'] == int(grand_prix.value), 'counterpick_deadline'].item()
+
+        draft: pd.Timestamp = draft_timestamp.tz_localize('UTC')
+        reset: pd.Timestamp = reset_timestamp.tz_localize('UTC')
+        counterpick: pd.Timestamp = counterpick_timestamp.tz_localize('UTC')
+        
+        embed = discord.Embed(title=f"Deadlines for the {grand_prix.name}", colour=settings.EMBED_COLOR)
+        embed.add_field(name=f"Draft Deadline", value=f"{draft.astimezone(sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item()).strftime('%d %B %Y at %I:%M %p')}")
+        embed.add_field(name=f"Reset Deadline", value=f"{reset.astimezone(sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item()).strftime('%d %B %Y at %I:%M %p')}")
+        embed.add_field(name=f"Counter-Pick Deadline", value=f"{counterpick.astimezone(sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item()).strftime('%d %B %Y at %I:%M %p')}")
+        await interaction.response.send_message(embed=embed, ephemeral=True)
 
     @debug_group.command(name='reset-round-points', description='Reset the points for a given round.')
     @app_commands.checks.has_role('Administrator')
