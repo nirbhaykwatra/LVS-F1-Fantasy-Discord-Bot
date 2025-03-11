@@ -768,5 +768,26 @@ class FantasyAdmin(commands.Cog):
             
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
+    @admin_group.command(name='show-undrafted', description='Show players who have not yet drafted for the specified round.')
+    @app_commands.checks.has_role('Administrator')
+    @app_commands.choices(
+        grand_prix=dt.grand_prix_choice_list()
+    )
+    async def show_undrafted(self, interaction: discord.Interaction, grand_prix: Choice[str]):
+        await interaction.response.defer(ephemeral=True)
+        undrafted_embed = discord.Embed(
+            title=f"**Undrafted Players for the {grand_prix.name}**",
+            description=f"",
+            colour=settings.EMBED_COLOR
+        )
+
+        for index, player in enumerate(sql.players.userid):
+            player_table = sql.retrieve_player_table(int(player))
+            user = await self.bot.fetch_user(int(player))
+            if int(grand_prix.value) not in player_table['round'].to_list():
+                undrafted_embed.add_field(name=f"{user.name}", value=f"has not drafted", inline=False)
+                
+        await interaction.followup.send(embed=undrafted_embed, ephemeral=True)
+
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyAdmin(bot))
