@@ -42,21 +42,21 @@ def has_deadline_passed(round_number: int, user_tz: str, column_name: str) -> bo
     current_time = pd.Timestamp.now(tz=user_tz)
     timings_table = sql.retrieve_timings()
         
-    round_deadline = timings_table.loc[timings_table['round'] == round_number, 'deadline'].item()
-    round_reset = timings_table.loc[timings_table['round'] == round_number, 'reset'].item()
-    round_deadline_counterpick = timings_table.loc[timings_table['round'] == round_number, 'counterpick_deadline'].item()
+    round_deadline: pd.Timestamp = timings_table.loc[timings_table['round'] == round_number, 'deadline'].item()
+    round_reset: pd.Timestamp = timings_table.loc[timings_table['round'] == round_number, 'reset'].item()
+    round_deadline_counterpick: pd.Timestamp = timings_table.loc[timings_table['round'] == round_number, 'counterpick_deadline'].item()
     
-    round_deadline_tz = round_deadline.tz_localize(tz=user_tz)
-    round_reset_tz = round_reset.tz_localize(tz=user_tz)
-    round_deadline_counterpick_tz = round_deadline_counterpick.tz_localize(tz=user_tz)
+    round_deadline_tz: pd.Timestamp = round_deadline.tz_localize(tz="UTC")
+    round_reset_tz: pd.Timestamp = round_reset.tz_localize(tz="UTC")
+    round_deadline_counterpick_tz: pd.Timestamp = round_deadline_counterpick.tz_localize(tz="UTC")
     
     if column_name == 'deadline' :
-        return round_deadline_tz < current_time < round_reset_tz
+        return round_deadline_tz.astimezone(tz=user_tz) < current_time < round_reset_tz.astimezone(tz=user_tz)
     elif column_name == 'counterpick_deadline' :
-        return round_deadline_counterpick_tz < current_time < round_reset_tz
+        return round_deadline_counterpick_tz.astimezone(tz=user_tz) < current_time < round_reset_tz.astimezone(tz=user_tz)
 
 
 if __name__ == '__main__':
-    #logger.info(pytz.all_timezones)
-    populate_timings_table()
+    logger.info(f"{pd.Timestamp.now(tz="America/Los_Angeles")}{has_deadline_passed(1, "America/Los_Angeles", 'counterpick_deadline')}")
+    #populate_timings_table()
     pass
