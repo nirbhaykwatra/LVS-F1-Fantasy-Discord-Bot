@@ -1,4 +1,6 @@
 import json
+import os
+import sys
 import random
 import discord
 from discord import app_commands
@@ -799,6 +801,16 @@ class FantasyAdmin(commands.Cog):
                 undrafted_embed.add_field(name=f"{user.name}", value=f"has not drafted", inline=False)
                 
         await interaction.followup.send(embed=undrafted_embed, ephemeral=True)
+
+    @admin_group.command(name='shut-down', description='Shut down or restart the bot.')
+    @app_commands.checks.has_role('Administrator')
+    async def shutdown_command(self, interaction: discord.Interaction, restart: bool = True):
+        if restart:
+            await interaction.response.send_message(f"Restarting Fantasy Manager...")
+            os.execv(sys.executable, ['python'] + sys.argv)
+        else:
+            await interaction.response.send_message(f"Shutting down Fantasy Manager...")
+            await self.bot.close()
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyAdmin(bot))
