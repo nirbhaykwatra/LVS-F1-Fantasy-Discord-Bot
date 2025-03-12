@@ -806,10 +806,10 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def shutdown_command(self, interaction: discord.Interaction, restart: bool = True):
         if restart:
-            await interaction.response.send_message(f"Restarting Fantasy Manager...")
+            await interaction.response.send_message(f"Restarting Fantasy Manager...", ephemeral=True)
             os.execv(sys.executable, ['python'] + sys.argv)
         else:
-            await interaction.response.send_message(f"Shutting down Fantasy Manager...")
+            await interaction.response.send_message(f"Shutting down Fantasy Manager...", ephemeral=True)
             await self.bot.close()
 
 async def setup(bot: commands.Bot) -> None:
