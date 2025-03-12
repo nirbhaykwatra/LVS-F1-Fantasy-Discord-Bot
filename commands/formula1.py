@@ -3,6 +3,7 @@ import settings
 import discord
 import pandas as pd
 from discord import app_commands
+from discord.app_commands import Choice
 from discord.ext import commands
 from utilities import fastf1util as f1
 from utilities import datautils as dt
@@ -23,29 +24,28 @@ class Formula1(commands.Cog):
     @stats_group.command(name='driver', description='Get information about Formula 1 drivers.')
     @app_commands.choices(driver=dt.drivers_choice_list(info=True))
     async def get_driver_data(self, interaction: discord.Interaction, driver: dt.Choice[str]):
+        driver_info = f1.get_driver_info(season='current')
+        
+        drivers_standings = f1.ergast.get_driver_standings(season='current')
+        
+        if not drivers_standings:
+            drivers_standings = f1.get_drivers_standings(season=settings.F1_SEASON - 1)
+            
+        driverId = driver_info.loc[driver_info['driverCode'] == driver.value, 'driverId'].item()
 
-        logger.info(f"Command 'driver' executed with name {driver.name} (TLA: {driver.value})")
-
-        try:
-            drivers_standings = f1.get_drivers_standings(datetime.now().year)
-        except IndexError as e:
-            drivers_standings = f1.get_drivers_standings(datetime.now().year - 1)
-            logger.warning(
-                f"Unable to retrieve driver standings for the year {datetime.now().year}! Retrieved driver standings for the year {datetime.now().year - 1} instead.")
-
+        #TODO: Create a color map where {constructorId: color}. Use this map to get embed colors for both drivers and teams.
         #region Driver Info embed
         driver_info_embed = discord.Embed(title=f'{driver.name}',
-                                          url=drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverUrl"][dt.drivers_choice_list(info=True).index(driver)],
-                                          description=f'#{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverNumber"][dt.drivers_choice_list(info=True).index(driver)]} - {driver.value}',
-                                          colour=discord.Colour.from_str(str(sql.drivers.loc[sql.drivers["driverCode"] == driver.value, "drivercolor"].item()))
+                                          url=driver_info.loc[driver_info["driverCode"] == driver.value, "driverUrl"].item(),
+                                          description=f'#{driver_info.loc[driver_info["driverCode"] == driver.value, "driverNumber"].item()} - {driver.value}',
+                                          colour=discord.Colour.from_str(dt.constructors_color_map[f1.ergast.get_constructor_info(season='current', driver=driverId).constructorId.values[0]])
                                           )
+        driver_info_embed.set_author(name=f'{dt.team_names_full[f1.ergast.get_constructor_info(season='current', driver=driverId).constructorId.values[0]]}')
 
-        driver_info_embed.set_author(name=f'{dt.get_full_team_name(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "constructorNames"][dt.drivers_choice_list(info=True).index(driver)][0])}')
-
-        driver_info_embed.add_field(name=drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "driverNationality"][dt.drivers_choice_list(info=True).index(driver)],
+        driver_info_embed.add_field(name=driver_info.loc[driver_info["driverCode"] == driver.value, "driverNationality"].item(),
                                     value="Nationality",
                                     inline=True)
-        date = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "dateOfBirth"][dt.drivers_choice_list(info=True).index(driver)].to_pydatetime()
+        date = driver_info.loc[driver_info["driverCode"] == driver.value, "dateOfBirth"].item().to_pydatetime()
         driver_info_embed.add_field(name=date.strftime("%d %b %Y"),
                                     value="Date of Birth",
                                     inline=True)
@@ -54,8 +54,8 @@ class Formula1(commands.Cog):
                                     value="Age",
                                     inline=True)
 
-        driver_first_name = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "givenName"][dt.drivers_choice_list(info=True).index(driver)]
-        driver_last_name = drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "familyName"][dt.drivers_choice_list(info=True).index(driver)]
+        driver_first_name = driver_info.loc[driver_info["driverCode"] == driver.value, "givenName"].item()
+        driver_last_name = driver_info.loc[driver_info["driverCode"] == driver.value, "familyName"].item()
 
         driver_info_embed.set_image(
             url=f"https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers"
@@ -64,7 +64,7 @@ class Formula1(commands.Cog):
         #endregion
 
         #region Driver Statistics embed
-
+        '''
         driver_stats_embed = discord.Embed(title=f"P{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "positionText"][dt.drivers_choice_list(info=True).index(driver)]} - {str(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "points"][dt.drivers_choice_list(info=True).index(driver)])} Points",
                                           colour=discord.Colour.from_str(str(sql.drivers.loc[sql.drivers["driverCode"] == driver.value, "drivercolor"].item()))
                                           )
@@ -88,10 +88,44 @@ class Formula1(commands.Cog):
         driver_stats_embed.add_field(name="Against Teammate (Qualifying)",
                                     value=f'',
                                     inline=True)
+        '''
         #endregion
 
         await interaction.response.defer(ephemeral=True)
-        await interaction.followup.send(f'', embeds=[driver_info_embed, driver_stats_embed], ephemeral=True)
+        await interaction.followup.send(f'', embeds=[driver_info_embed], ephemeral=True)
+
+    @stats_group.command(name='manufacturer', description='Get information about Formula 1 constructors.')
+    @app_commands.choices(team=dt.constructor_choice_list())
+    async def get_constructor_data(self, interaction: discord.Interaction, team: Choice[str]):
+        await interaction.response.defer(ephemeral=True)
+        constructor_standings = f1.ergast.get_constructor_standings(season='current').content
+        
+        if not constructor_standings:
+            constructor_standings = f1.ergast.get_constructor_standings(season=settings.F1_SEASON - 1).content[0]
+        else:
+            constructor_standings = constructor_standings[0]
+        
+        constructor_embed = discord.Embed(
+            title=f'{team.name}', colour=discord.Colour.from_str(dt.constructors_color_map[team.value])
+        )
+        
+        constructor_embed.set_author(name=f'Constructor')
+        for index, driver in enumerate(f1.ergast.get_driver_info(season='current', constructor=team.value).driverId):
+            constructor_embed.add_field(value=f"{f1.ergast.get_driver_info(season='current', constructor=team.value).givenName[index]} "
+                                             f"{f1.ergast.get_driver_info(season='current', constructor=team.value).familyName[index]}", 
+                                        name=f"Driver {index + 1}", inline=True)
+            
+        constructor_embed.add_field(name=f"Championship Standing", 
+                                    value=f"P{constructor_standings.loc[constructor_standings['constructorId'] == team.value, 'position'].item()}", inline=False)
+        constructor_embed.add_field(name=f"Championship Points", value=f"{constructor_standings.loc[constructor_standings['constructorId'] == team.value, 'points'].item()}"
+                                    , inline=True)
+        
+        constructor_embed.set_image(
+            url=f"https://media.formula1.com/image/upload/content/dam/fom-website/2018-redesign-assets/team%20logos/"
+                f"{team.value}"
+        )
+        
+        await interaction.followup.send(embeds=[constructor_embed], ephemeral=True)
 
     @stats_group.command(name='grand-prix', description='Get information about Formula 1 Grand Prix events.')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
