@@ -19,7 +19,7 @@ team_names_full = {
     "ferrari"   :   "Scuderia Ferrari",
     "mercedes"  :   "Mercedes-AMG PETRONAS F1 Team",
     "aston_martin"  :   "Aston Martin Aramco F1 Team",
-    "rb"    :   "Visa CashApp RB Formula 1 Team",
+    "rb"    :   "Visa CashApp Racing Bulls Formula 1 Team",
     "haas"  :   "MoneyGram Haas F1 Team",
     "williams"  :   "Atlassian Williams Racing",
     "alpine":   "BWT Alpine F1 Team",
@@ -42,6 +42,18 @@ img_url_map = {
     "13": "Belgium", "14": "Hungary", "15": "Netherlands", "16": "Italy",
     "17": "Baku", "18": "Singapore", "19": "USA", "20": "Mexico",
     "21": "Brazil", "22": "Las_Vegas", "23": "Qatar", "24": "Abu_Dhabi"
+}
+constructors_color_map = {
+    "red_bull"  :   "0x00298f",
+    "mclaren"   :   "0xcc6600",
+    "ferrari"   :   "0xba001a",
+    "mercedes"  :   "0x09b8a2",
+    "aston_martin"  :   "0x1b7a5a",
+    "rb"    :   "0x2b5a9e",
+    "haas"  :   "0x3f4547",
+    "williams"  :   "0x1353af",
+    "alpine":   "0x0081ba",
+    "sauber"    :   "0x01d800"
 }
 td = timedelta()
 all_tz = pytz.all_timezones
@@ -94,10 +106,6 @@ def drivers_choice_list(info: bool = False) -> []:
 
 def constructor_choice_list() -> []:
     constructors_list = []
-    try:
-        constructor_standings = f1.ergast.get_constructor_standings(settings.F1_SEASON).content[0]
-    except IndexError as e:
-        constructor_standings = f1.ergast.get_constructor_standings(season=settings.F1_SEASON - 1).content[0]
         
     constructors = f1.ergast.get_constructor_info(season='current').constructorId
 
