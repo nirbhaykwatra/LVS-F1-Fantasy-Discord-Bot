@@ -1,4 +1,4 @@
-# A module for all PostgreSQL methods. Use this to retrieve and store data in a PostgreSQL database.
+"""A module for all PostgreSQL methods. Use this to retrieve and store data in a PostgreSQL database.""" 
 import traceback
 from typing import Literal
 import sqlalchemy as sql
@@ -9,6 +9,7 @@ from utilities import fastf1util as f1
 
 logger = settings.create_logger('sql')
 
+#TODO: Create a table to store league stats and find a way to append stats columns to every individual player table.
 
 #region Utilities
 def write_to_fantasy_database(table: str, data: pd.DataFrame, if_exists: Literal["fail", "replace", "append"] = "replace", index: bool = False):
