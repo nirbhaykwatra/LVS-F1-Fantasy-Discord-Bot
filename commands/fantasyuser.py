@@ -523,15 +523,6 @@ class FantasyUser(commands.Cog):
             await interaction.response.send_message(embed=unregistered_embed, ephemeral=True)
             return
         
-        if user.id not in sql.players.userid.to_list():
-            unregistered_embed = discord.Embed(
-                title=f"{user.name} is not registered!",
-                description=f"You cannot counter-pick a user who is not registered! ",
-                colour=settings.EMBED_COLOR
-            )
-
-            await interaction.response.send_message(embed=unregistered_embed, ephemeral=True)
-            return
 
         if grand_prix is None:
             grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
