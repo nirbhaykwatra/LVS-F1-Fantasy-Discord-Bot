@@ -766,22 +766,12 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='player-profile', description="View a player's profile.")
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def player_profile(self, interaction: discord.Interaction, user: discord.User):
-        try:
-            if not any(sql.players.userid == user.id):
-
-                unregistered_embed = discord.Embed(
-                    title=f"You are not registered!",
-                    description=f" Please register to view player profiles!",
-                    colour=settings.EMBED_COLOR
-                )
-
-                await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
-                return
-        except ValueError as e:
+        
+        if user == interaction.user and interaction.user.id not in sql.players.userid.to_list():
 
             unregistered_embed = discord.Embed(
                 title=f"You are not registered!",
-                description=f" Please register to view player profiles!",
+                description=f" Please register to view your profile!",
                 colour=settings.EMBED_COLOR
             )
 
@@ -822,6 +812,7 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='leaderboard', description='View the leaderboard.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def leaderboard(self, interaction: discord.Interaction):
+        
         await interaction.response.send_message(f'leaderboard command triggered', ephemeral=True)
 
     @app_commands.command(name='points-breakdown', description='View points breakdown for given grand prix.')
