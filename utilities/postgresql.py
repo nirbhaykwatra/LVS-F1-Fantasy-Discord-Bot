@@ -50,6 +50,21 @@ except Exception as e:
     logger.error(f'Could not connect to {player_engine.url.database} database! Exception: {traceback.format_exc()}')
 #endregion
 
+#region Connect to statistics database
+stats_engine = sql.create_engine(settings.POSTGRES_STATS_BASE_URL)
+if not database_exists(stats_engine.url):
+    create_database(stats_engine.url)
+    logger.info(f'Statistics database not found. Created new database: {stats_engine.url}.')
+stats_conn = None
+try:
+    stats_conn = stats_engine.connect()
+    logger.info(
+        f'Connected to {stats_engine.url.database} database on {stats_engine.url.username}@{stats_engine.url.host}:{stats_engine.url.port}')
+    stats_metadata = sql.MetaData()
+except Exception as e:
+    logger.error(f'Could not connect to {stats_engine.url.database} database! Exception: {traceback.format_exc()}')
+#endregion
+
 #region Player Table methods
 
 def create_player_table(user_id: int):

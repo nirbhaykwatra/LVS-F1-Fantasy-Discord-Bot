@@ -53,6 +53,7 @@ EMBED_COLOR = discord.Colour.from_rgb(settings["embed_color"][0], settings["embe
 F1_IMAGE_BASE_URL = "https://media.formula1.com/d_driver_fallback_image.png/content/dam/fom-website/drivers/"
 POSTGRES_BASE_URL = f'postgresql://{os.getenv('SQLUSER')}:{os.getenv('SQLPASS')}@{os.getenv('SQLHOST')}/fantasy_{F1_SEASON}'
 POSTGRES_PLAYER_BASE_URL = f'postgresql://{os.getenv('SQLUSER')}:{os.getenv('SQLPASS')}@{os.getenv('SQLHOST')}/players_{F1_SEASON}'
+POSTGRES_STATS_BASE_URL = f'postgresql://{os.getenv('SQLUSER')}:{os.getenv('SQLPASS')}@{os.getenv('SQLHOST')}/stats_{F1_SEASON}'
 
 RACE_POINTS = [25, 18, 15, 12, 10, 8, 6, 4, 2, 1]
 QUALI_POINTS = [5, 4, 3, 2, 1]
