@@ -1,6 +1,6 @@
 /* spacing */
 table {
-    table-layout: fixed;
+    table-layout: auto;
     width: 100%;
     border-collapse: collapse;
     border: 0px solid rgb(0, 0, 0);
@@ -17,13 +17,12 @@ html {
     color: #ffffff;
   }
   
-  thead th,
-  tfoot th {
+  thead th {
     font-family: "Formula1 Display";
     font-size: large;
     word-wrap: break-word;
     padding: 20px;
-    width: auto;
+    width: 30%;
   }
   
   th {
@@ -32,16 +31,17 @@ html {
   
   td {
     letter-spacing: 1px;
-    padding: 20px;
+    padding: 30px;
     font-family: "Formula1 Display";
     font-size: 20px;
     font-weight: bold;
     word-wrap: break-word;
-    width: auto;
+  }
+  
+  tr:nth-child(even){
+    background-color: rgb(46, 48, 53);
   }
 
-  tr:nth-child(even){background-color: rgb(46, 48, 53);}
-  
   tbody td {
     text-align: center;
   }
