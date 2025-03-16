@@ -814,7 +814,8 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='points-breakdown', description='View points breakdown for given grand prix.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
-    async def points_breakdown(self, interaction: discord.Interaction, grand_prix: Choice[str]):
+    async def points_breakdown(self, interaction: discord.Interaction, grand_prix: Choice[str], user: discord.User = None):
+
         await interaction.response.defer(ephemeral=True)
         
         event_schedule = f1.event_schedule
@@ -830,16 +831,19 @@ class FantasyUser(commands.Cog):
 
             await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
             return
+
+        if user == None:
+            user = interaction.user
         
         embed_points = discord.Embed(
             title=f"Points Breakdown for the {grand_prix.name}",
             colour=settings.EMBED_COLOR
         )
         
-        embed_points.set_author(name=f"Round {grand_prix.value}")
+        embed_points.set_author(name=f"{user.name}")
         
-        embed_points.add_field(name=f"{sql.results.loc[sql.results['userid'] == interaction.user.id, f'round{grand_prix.value}'].item()} points", value=f"Total Points")
-        breakdown_json = sql.results.loc[sql.results['userid'] == interaction.user.id, f'round{grand_prix.value}breakdown'].item()
+        embed_points.add_field(name=f"{sql.results.loc[sql.results['userid'] == user.id, f'round{grand_prix.value}'].item()} points", value=f"Total Points")
+        breakdown_json = sql.results.loc[sql.results['userid'] == user.id, f'round{grand_prix.value}breakdown'].item()
         breakdown = json.loads(breakdown_json)
         
         embed_points.add_field(name=f"Race", value="------------------------", inline=False)
@@ -872,7 +876,11 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='points-table', description='View the points table.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def points_table(self, interaction: discord.Interaction, hidden: bool = True):
-        results_prep = sql.results.drop(axis=1, columns=['userid', 
+
+        for user in sql.players.userid:
+            results_prep = sql.results.loc[sql.results['userid'] == user, 'total'] = sql.players.loc[sql.players['userid'] == user, 'points']
+
+        results_prep = sql.results.drop(axis=1, columns=['userid',
                                                          'round1breakdown', 'round2breakdown', 'round3breakdown',
                                                          'round4breakdown', 'round5breakdown', 'round6breakdown',
                                                          'round7breakdown', 'round8breakdown', 'round9breakdown',
@@ -882,14 +890,13 @@ class FantasyUser(commands.Cog):
                                                          'round19breakdown', 'round20breakdown', 'round21breakdown',
                                                          'round22breakdown', 'round23breakdown', 'round24breakdown'
                                                          ])
+
+        results_prep = results_prep.sort_values(by='total', ascending=False)
+
+        for position in range(1, len(results_prep.index)):
+            results_prep['rank'] = position
+
         html = Html2Image(browser='chrome', browser_executable=settings.BROWSER_DIR, output_path=settings.BASE_DIR/"data", size=(3840, 1440))
-        results_prep.to_html(
-            index=False,
-            justify='center',
-            border=0,
-            buf=settings.BASE_DIR/"data"/"html"/"table.html",
-            classes='table table-striped',
-        )
         results_html = results_prep.to_html(
             index=False,
             justify='center',
