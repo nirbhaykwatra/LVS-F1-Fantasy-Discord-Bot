@@ -478,7 +478,12 @@ class FantasyUser(commands.Cog):
         
         last_team = player_table[player_table['round'] == settings.F1_ROUND - 1].squeeze()
         second_last_team = player_table[player_table['round'] == settings.F1_ROUND - 2].squeeze()
-        
+
+        if last_team.empty or second_last_team.empty:
+            embed_no = discord.Embed(title=f"There are no exhaustions for {user.name}", colour=settings.EMBED_COLOR)
+            await interaction.followup.send(embed=embed_no, ephemeral=True)
+            return
+
         common = pd.Series(list(set(last_team).intersection(set(second_last_team))))
         
         embed = discord.Embed(title=f"Exhausted Drivers for {user.name}", colour=settings.EMBED_COLOR)
@@ -878,6 +883,13 @@ class FantasyUser(commands.Cog):
                                                          'round22breakdown', 'round23breakdown', 'round24breakdown'
                                                          ])
         html = Html2Image(browser='chrome', browser_executable=settings.BROWSER_DIR, output_path=settings.BASE_DIR/"data", size=(3840, 1440))
+        results_prep.to_html(
+            index=False,
+            justify='center',
+            border=0,
+            buf=settings.BASE_DIR/"data"/"html"/"table.html",
+            classes='table table-striped',
+        )
         results_html = results_prep.to_html(
             index=False,
             justify='center',
