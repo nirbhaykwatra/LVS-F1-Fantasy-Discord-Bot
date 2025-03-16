@@ -1,3 +1,5 @@
+from datetime import datetime, timedelta
+import time
 import json
 import os
 import sys
@@ -5,7 +7,7 @@ import random
 import discord
 from discord import app_commands
 from discord.app_commands import Choice
-from discord.ext import commands
+from discord.ext import commands, tasks
 import settings
 import pandas as pd
 from utilities import postgresql as sql
@@ -23,6 +25,22 @@ class FantasyAdmin(commands.Cog):
     admin_group = app_commands.Group(name='admin',
                                      description='A group of admin commands.',
                                      guild_ids=[settings.GUILD_ID])
+
+    draft_deadline: pd.Timestamp = sql.timings.loc[sql.timings['round'] == settings.F1_ROUND, 'deadline'].item()
+    draft_deadline_dt: datetime = draft_deadline.to_pydatetime()
+    dd_12: datetime = draft_deadline_dt.astimezone() - timedelta(hours=12)
+    dd_6: datetime = draft_deadline_dt.astimezone() - timedelta(hours=6)
+    dd_3: datetime = draft_deadline_dt.astimezone() - timedelta(hours=3)
+    dd_1: datetime = draft_deadline_dt.astimezone() - timedelta(hours=1)
+    dd_m_3: datetime = draft_deadline_dt.astimezone() - timedelta(minutes=30)
+
+    draft_reminder_times = [
+        dd_12.time(),
+        dd_6.time(),
+        dd_3.time(),
+        dd_1.time(),
+        dd_m_3.time()
+    ]
 
     async def is_team_invalid(self, random_team, player_table, user, grand_prix) -> bool:
         """
@@ -115,6 +133,7 @@ class FantasyAdmin(commands.Cog):
     
         return bDraftInvalid
 
+    #@tasks.loop(seconds=5, count=5)
     @admin_group.command(name='update-player-points', description='Update player points, as of the given round.')
     @app_commands.checks.has_role('Administrator')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
@@ -811,6 +830,39 @@ class FantasyAdmin(commands.Cog):
         else:
             await interaction.response.send_message(f"Shutting down Fantasy Manager...", ephemeral=True)
             await self.bot.close()
+
+    @admin_group.command(name='send-dm', description='Send a direct message to a specified user.')
+    @app_commands.checks.has_role('Administrator')
+    async def send_reminder(self, interaction: discord.Interaction, user: discord.User, title: str, message: str):
+        embed = discord.Embed(title=f'{title}',
+                              description=f"{message}",
+                              colour=settings.EMBED_COLOR)
+
+        logger.info(f"Sending DM reminder to {user.name}.")
+        await user.send(embed=embed)
+        await interaction.response.send_message(f"Sent DM to {user.name}.", ephemeral=True)
+
+    @admin_group.command(name='send-reminder', description='Send a draft reminder to a specified user.')
+    @app_commands.checks.has_role('Administrator')
+    async def send_reminder(self, interaction: discord.Interaction, user: discord.User):
+        embed = discord.Embed(title='Draft Reminder',
+                              description=f"You have not yet drafted your team for the "
+                                          f"**{f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, 'EventName'].item()}**! "
+                                          f"Please draft your team at the earliest. You can check the drafting deadline by using the "
+                                          f"**/check-deadline** command.\n If you are unable to draft yourself, you can contact a League Administrator "
+                                          f"and let them know your team picks, they will draft for you. If you do not draft before the drafting deadline "
+                                          f"elapses, a team will be assigned to you at random.", colour=settings.EMBED_COLOR)
+
+        # for index, player in enumerate(sql.players.userid):
+        #     player_table = sql.retrieve_player_table(int(player))
+        #     user = await self.bot.fetch_user(int(player))
+        #     if int(settings.F1_ROUND) not in player_table['round'].to_list():
+        #         await user.send(embed=embed)
+        logger.info(f"Sending DM reminder to {user.name}.")
+        await user.send(embed=embed)
+        await interaction.response.send_message(f"Sent DM reminder to {user.name}.", ephemeral=True)
+
+
 
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyAdmin(bot))
