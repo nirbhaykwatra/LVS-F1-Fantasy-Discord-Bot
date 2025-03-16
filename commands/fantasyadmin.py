@@ -323,8 +323,9 @@ class FantasyAdmin(commands.Cog):
             points_breakdown_json = json.dumps(points_breakdown)
             results.loc[results['userid'] == player, f'round{grand_prix.value}'] = total_points
             results.loc[results['userid'] == player, f'round{grand_prix.value}breakdown'] = [points_breakdown_json]
-            
-            sql.update_player_points(int(player))
+
+            for player in sql.players.userid:
+                sql.update_player_points(int(player))
             sql.write_to_fantasy_database('results', results)
             sql.results = sql.import_results_table()
             sql.players = sql.import_players_table()
