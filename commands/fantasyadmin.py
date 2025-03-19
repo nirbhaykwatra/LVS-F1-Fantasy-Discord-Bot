@@ -351,6 +351,7 @@ class FantasyAdmin(commands.Cog):
             sql.write_to_fantasy_database('results', results)
             sql.results = sql.import_results_table()
             sql.players = sql.import_players_table()
+            settings.F1_ROUND += 1
             
         embed_points = discord.Embed(
             title=f'Points for the {grand_prix.name} have been updated!',
