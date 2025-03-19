@@ -1,20 +1,12 @@
-from datetime import datetime, timedelta
-import time
-import json
-import os
-import sys
-import random
-import discord
+import datetime, time, json, os, sys, random, discord, pytz, settings
 from discord import app_commands
 from discord.app_commands import Choice
 from discord.ext import commands, tasks
-import settings
 import pandas as pd
 from utilities import postgresql as sql
 from utilities import drstatslib as stats
 from utilities import fastf1util as f1
 from utilities import datautils as dt
-from utilities import timing
 
 logger = settings.create_logger('fantasy-admin')
 
