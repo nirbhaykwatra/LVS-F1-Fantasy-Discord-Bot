@@ -452,7 +452,6 @@ class FantasyAdmin(commands.Cog):
                     grand_prix: Choice[str]):
 
         await interaction.response.defer(ephemeral=True)
-        # TODO: Implement exhaustion
 
         if user.id not in sql.players.userid.to_list():
             unregistered_embed = discord.Embed(
@@ -991,9 +990,11 @@ class FantasyAdmin(commands.Cog):
     async def shutdown_command(self, interaction: discord.Interaction, restart: bool = True):
         if restart:
             await interaction.response.send_message(f"Restarting Fantasy Manager...", ephemeral=True)
+            settings.exit_handler()
             os.execv(sys.executable, ['python'] + sys.argv)
         else:
             await interaction.response.send_message(f"Shutting down Fantasy Manager...", ephemeral=True)
+            settings.exit_handler()
             await self.bot.close()
 
     @admin_group.command(name='send-dm', description='Send a direct message to a specified user.')
