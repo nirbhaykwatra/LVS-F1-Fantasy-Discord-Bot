@@ -161,6 +161,7 @@ class FantasyAdmin(commands.Cog):
     async def update_player_points(self, interaction: discord.Interaction, grand_prix: Choice[str], quali_results: str, race_results: str, sprint_results: str = "none", sprint_quali_results: str = "none", hidden: bool = True):
         
         await interaction.response.defer(ephemeral=hidden)
+        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /points-table\nParameters:\ngrand_prix: {grand_prix.name}\nquali_results: {quali_results}\nrace_results: {race_results}\nsprint_results: {sprint_results}\nsprint_quali_results: {sprint_quali_results}")
         
         results = sql.results
         driver_info = f1.get_driver_info(season='current')
