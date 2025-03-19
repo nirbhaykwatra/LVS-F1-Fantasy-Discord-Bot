@@ -69,6 +69,9 @@ def get_driver_position_delta(driver: str) -> [int]:
     position_delta = [0, 0]
 
     return position_delta
+
+def populate_league_stats():
+    pass
 #endregion
 
 #region Per-Race methods
@@ -107,14 +110,13 @@ def did_driver_podium(driver: str, round: int) -> bool:
         except UnboundLocalError as e:
             logger.warning(f"Could not find driver {driver} in round {round}.")
 
-
 def calculate_teammate_battle(driver: str):
     pass
 
 #endregion
 
 if __name__ == "__main__":
-    logger.info(f'Podiums: {get_driver_podiums("VER")}')
+    # logger.info(f'Podiums: {get_driver_podiums("VER")}')
     # logger.info(f'Battle: {get_driver_teammate_battle("VER", settings.F1_SEASON)}')
     # logger.info(f'Position delta: {get_driver_position_delta("VER")}')
     pass
