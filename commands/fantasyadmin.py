@@ -13,6 +13,11 @@ logger = settings.create_logger('fantasy-admin')
 class FantasyAdmin(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        self.remind_undrafted.start()
+
+    def cog_unload(self):
+        self.remind_undrafted.cancel()
+
 
     admin_group = app_commands.Group(name='admin',
                                      description='A group of admin commands.',
@@ -20,16 +25,6 @@ class FantasyAdmin(commands.Cog):
 
     draft_deadline: pd.Timestamp = sql.timings.loc[sql.timings['round'] == settings.F1_ROUND, 'deadline'].item()
     draft_deadline_dt: datetime = draft_deadline.to_pydatetime()
-    dd_12: datetime = draft_deadline_dt.astimezone() - timedelta(hours=12)
-    dd_6: datetime = draft_deadline_dt.astimezone() - timedelta(hours=6)
-    dd_3: datetime = draft_deadline_dt.astimezone() - timedelta(hours=3)
-    dd_1: datetime = draft_deadline_dt.astimezone() - timedelta(hours=1)
-    dd_m_3: datetime = draft_deadline_dt.astimezone() - timedelta(minutes=30)
-
-    draft_reminder_times = [
-        dd_12.time(),
-        dd_6.time(),
-        dd_3.time(),
         dd_1.time(),
         dd_m_3.time()
     ]
