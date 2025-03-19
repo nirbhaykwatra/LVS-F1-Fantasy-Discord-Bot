@@ -112,7 +112,6 @@ class FantasyUser(commands.Cog):
 
         await interaction.response.defer(ephemeral=True)
 
-
         if interaction.user.id not in sql.players.userid.to_list():
 
             unregistered_embed = discord.Embed(
@@ -893,8 +892,12 @@ class FantasyUser(commands.Cog):
 
         results_prep = results_prep.sort_values(by='total', ascending=False)
 
-        for position in range(1, len(results_prep.index)):
-            results_prep['rank'] = position
+        results_prep = results_prep.rename({'username': 'Player', 'teamname':'Team'}, axis='columns')
+
+        results_prep = results_prep.rename(dt.points_table_rename_map, axis='columns')
+
+        ##for position in range(1, len(results_prep.index)):
+           ## results_prep['rank'] = position
 
         html = Html2Image(browser='chrome', browser_executable=settings.BROWSER_DIR, output_path=settings.BASE_DIR/"data", size=(3840, 1440))
         results_html = results_prep.to_html(
