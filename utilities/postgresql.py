@@ -166,6 +166,10 @@ def import_counterpick_table() -> pd.DataFrame:
 
 #endregion
 
+#region Statistics DB Import methods
+
+#endregion
+
 #region Table Imports
 
 players = import_players_table()
@@ -221,6 +225,10 @@ if bIsCounterpickEmpty:
     counterpick = initialise_counterpick(counterpick)
     write_to_fantasy_database('counterpick', counterpick, if_exists='replace')
     logger.info(f'Initialised counterpick table: {counterpick}')
+
+#endregion
+
+#region Statistics
 
 #endregion
 
