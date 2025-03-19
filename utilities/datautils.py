@@ -55,6 +55,15 @@ constructors_color_map = {
     "alpine":   "0x0081ba",
     "sauber"    :   "0x01d800"
 }
+
+points_table_rename_map = {
+    'round1': 'R1', 'round2': 'R2', 'round3': 'R3', 'round4': 'R4',
+    'round5': 'R5', 'round6': 'R6', 'round7': 'R7', 'round8': 'R8',
+    'round9': 'R9', 'round10': 'R10', 'round11': 'R11', 'round12': 'R12',
+    'round13': 'R13', 'round14': 'R14', 'round15': 'R15', 'round16': 'R16',
+    'round17': 'R17', 'round18': 'R18', 'round19': 'R19', 'round20': 'R20',
+    'round21': 'R21', 'round22': 'R22', 'round23': 'R23', 'round24': 'R24'
+}
 td = timedelta()
 all_tz = pytz.all_timezones
 
