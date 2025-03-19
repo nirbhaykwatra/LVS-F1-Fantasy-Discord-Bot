@@ -439,7 +439,7 @@ class FantasyAdmin(commands.Cog):
     @app_commands.choices(driver1=dt.drivers_choice_list(),
                           driver2=dt.drivers_choice_list(),
                           driver3=dt.drivers_choice_list(),
-                          wildcard=dt.drivers_choice_list(),
+                          bogey_driver=dt.drivers_choice_list(),
                           team=dt.constructor_choice_list(),
                           grand_prix=dt.grand_prix_choice_list())
     async def draft(self, interaction: discord.Interaction,
@@ -447,30 +447,171 @@ class FantasyAdmin(commands.Cog):
                     driver1: Choice[str],
                     driver2: Choice[str],
                     driver3: Choice[str],
-                    wildcard: Choice[str],
+                    bogey_driver: Choice[str],
                     team: Choice[str],
                     grand_prix: Choice[str]):
 
         await interaction.response.defer(ephemeral=True)
         # TODO: Implement exhaustion
 
-        if not any(sql.players.userid == user.id):
+        if user.id not in sql.players.userid.to_list():
             unregistered_embed = discord.Embed(
-                title=f"{user.name} is not registered! ",
-                description=f"Please register to draft!",
+                title=f"You are not registered!",
+                description=f" Please register to draft!",
                 colour=settings.EMBED_COLOR
             )
 
             await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
             return
 
+        if grand_prix is None:
+            grand_prix = Choice(
+                name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
+                value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
+                )
+        else:
+            grand_prix = Choice(name=f1.event_schedule.loc[
+                f1.event_schedule['RoundNumber'] == int(grand_prix.value), "EventName"].item(),
+                                value=f1.event_schedule.loc[
+                                    f1.event_schedule['RoundNumber'] == int(grand_prix.value), "RoundNumber"].item()
+                                )
+
+        driver_info = f1.get_driver_info(settings.F1_SEASON)
+
+        # region Draft Checks
+
+        # Duplicate Check
+        team_list = [driver1, driver2, driver3, bogey_driver]
+
+        bHasDuplicateDriver = len(team_list) != len(set(team_list))
+
+        embed_duplicate = discord.Embed(title="Invalid Draft!",
+                                        description="You have chosen one driver more than once! Please try again.",
+                                        colour=settings.EMBED_COLOR)
+        if bHasDuplicateDriver:
+            await interaction.followup.send(embed=embed_duplicate, ephemeral=True)
+
+        # Exhausted Check
+        player_table = sql.retrieve_player_table(user.id)
+
+        last_team = player_table[player_table['round'] == settings.F1_ROUND - 1].squeeze()
+        second_last_team = player_table[player_table['round'] == settings.F1_ROUND - 2].squeeze()
+
+        common = pd.Series(list(set(last_team).intersection(set(second_last_team))))
+
+        driver_info = f1.get_driver_info(season='current')
+
+        exhausted = []
+        embed_exhausted = discord.Embed(title="Invalid Draft!",
+                                        description="One or more of the following picks are exhausted!",
+                                        colour=settings.EMBED_COLOR)
+
+        for element in common:
+            if driver1.value == element or driver2.value == element or driver3.value == element or bogey_driver.value == element:
+                embed_exhausted.add_field(
+                    name=f"{driver_info.loc[driver_info['driverCode'] == element, 'givenName'].item()} "
+                         f"{driver_info.loc[driver_info['driverCode'] == element, 'familyName'].item()}",
+                    value="Exhausted!", inline=False)
+                exhausted.append(element)
+
+            if team.value == element:
+                embed_exhausted.add_field(name=f"{dt.team_names_full[element]}", value="Exhausted!", inline=False)
+                exhausted.append(element)
+
+        bPickExhausted = len(exhausted) != 0
+
+        if bPickExhausted:
+            await interaction.followup.send(embed=embed_exhausted, ephemeral=True)
+
+        # Bogey Driver Check
+        '''
+        try:
+            constructor_standings = f1.ergast.get_constructor_standings(season='current').content[0]
+        except IndexError as e:
+            constructor_standings = f1.ergast.get_constructor_standings(season=settings.F1_SEASON - 1).content[0]
+            logger.warning(
+                    f"Unable to retrieve driver standings for the year {settings.F1_SEASON}! Retrieved driver standings for the year {settings.F1_SEASON - 1} instead.")
+
+        constructor_list = constructor_standings.constructorId.to_list()
+
+        last_five_constructors = constructor_list[5:]
+
+        bogey_id = driver_info.loc[driver_info['driverCode'] == bogey_driver.value, ['driverId']].squeeze()
+        bogey_constructor = f1.ergast.get_constructor_info(season='current', driver=bogey_id).constructorId.squeeze()
+
+        embed_bogey = discord.Embed(title="Invalid Draft!", description="Your bogey driver must be from the last 5 constructors.", colour=settings.EMBED_COLOR)
+
+        bBogeyDriverTeamInvalid = bogey_constructor not in last_five_constructors
+
+        if bBogeyDriverTeamInvalid:
+            await interaction.followup.send(embed=embed_bogey, ephemeral=True)
+        '''
+
+        # Check if more than 2 drivers are in the same team
+        selected_drivers = [driver1.value, driver2.value, driver3.value, bogey_driver.value]
+
+        driverIds = []
+        selected_constructors = []
+
+        for driver in selected_drivers:
+            driverIds.append(driver_info.loc[driver_info['driverCode'] == driver, ['driverId']].squeeze())
+
+        for driver in driverIds:
+            selected_constructors.append(
+                f1.ergast.get_constructor_info(season='current', driver=driver).constructorId.squeeze())
+
+        embed_const = discord.Embed(title="Invalid Draft!",
+                                    description="You cannot pick both drivers from multiple constructors!",
+                                    colour=settings.EMBED_COLOR)
+        embed_team = discord.Embed(title="Invalid Draft!",
+                                   description="At least one picked driver has to represent your selected constructor!",
+                                   colour=settings.EMBED_COLOR)
+
+        bHasDuplicateConstructor = len(set(selected_constructors)) < 3
+
+        if bHasDuplicateConstructor:
+            await interaction.followup.send(embed=embed_const, ephemeral=True)
+
+        bNoDriverFromConstructor = team.value not in selected_constructors
+
+        if bNoDriverFromConstructor:
+            await interaction.followup.send(embed=embed_team, ephemeral=True)
+
+        # Check if a driver has been counter-picked
+        current_round_counterpicks = sql.counterpick[(sql.counterpick['round'] == grand_prix.value) & (
+                    sql.counterpick['targetuser'] == user.id)].targetdriver.array
+        embed_counterpick = discord.Embed(title="Invalid Draft!",
+                                          description="The following drivers have been banned by counterpick for this round!",
+                                          colour=settings.EMBED_COLOR)
+        bDriverCounterpicked = False
+
+        for driver in current_round_counterpicks:
+            if driver1.value == driver or driver2.value == driver or driver3.value == driver or bogey_driver.value == driver:
+                embed_counterpick.add_field(
+                    name=f"{driver_info.loc[driver_info['driverCode'] == driver, 'givenName'].item()} "
+                         f"{driver_info.loc[driver_info['driverCode'] == driver, 'familyName'].item()}",
+                    value=f"Banned!", inline=False)
+                bDriverCounterpicked = True
+
+        if bDriverCounterpicked:
+            await interaction.followup.send(embed=embed_counterpick, ephemeral=True)
+
+        # endregion
+
+        bDraftInvalid = bNoDriverFromConstructor or bPickExhausted or bHasDuplicateConstructor or bDriverCounterpicked or bHasDuplicateDriver
+
+        if bDraftInvalid:
+            return
+
+            # Operation to modify the database table has to be done before creating the embed, as the embed will error out
+        # if there are no values in the table
         sql.draft_to_table(
             user_id=user.id,
             round=int(grand_prix.value),
             driver1=driver1.value,
             driver2=driver2.value,
             driver3=driver3.value,
-            wildcard=wildcard.value,
+            wildcard=bogey_driver.value,
             team=team.value
         )
 
