@@ -23,11 +23,45 @@ class FantasyAdmin(commands.Cog):
                                      description='A group of admin commands.',
                                      guild_ids=[settings.GUILD_ID])
 
-    draft_deadline: pd.Timestamp = sql.timings.loc[sql.timings['round'] == settings.F1_ROUND, 'deadline'].item()
-    draft_deadline_dt: datetime = draft_deadline.to_pydatetime()
-        dd_1.time(),
-        dd_m_3.time()
-    ]
+    @staticmethod
+    def get_reminder_times() -> [time]:
+        tz = pytz.UTC
+        times_list = []
+        draft_deadline: pd.Timestamp = sql.timings.loc[sql.timings['round'] == settings.F1_ROUND, 'deadline'].item()
+        draft_deadline_dt: datetime = draft_deadline.to_pydatetime()
+        logger.info(f"test_dt: {draft_deadline_dt.replace(tzinfo=tz)}")
+
+        dd_12: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=12)
+        dd_6: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=6)
+        dd_3: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=3)
+        dd_1: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=1)
+        dd_m_3: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(minutes=30)
+
+        times_list.append(datetime.time(hour=dd_12.hour, minute=dd_12.minute, second=dd_12.second, tzinfo=tz))
+        times_list.append(datetime.time(hour=dd_6.hour, minute=dd_6.minute,second=dd_6.second, tzinfo=tz))
+        times_list.append(datetime.time(hour=dd_3.hour, minute=dd_3.minute,second=dd_3.second, tzinfo=tz))
+        times_list.append(datetime.time(hour=dd_1.hour, minute=dd_1.minute,second=dd_1.second, tzinfo=tz))
+        times_list.append(datetime.time(hour=dd_m_3.hour, minute=dd_m_3.minute,second=dd_m_3.second, tzinfo=tz))
+        logger.info(f"Times list: {times_list}")
+
+        return times_list
+
+
+    @tasks.loop(time=get_reminder_times())
+    async def remind_undrafted(self):
+        embed = discord.Embed(title='Draft Reminder',
+                              description=f"You have not yet drafted your team for the "
+                                          f"**{f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, 'EventName'].item()}**! "
+                                          f"Please draft your team at the earliest. You can check the drafting deadline by using the "
+                                          f"**/check-deadline** command.\n If you are unable to draft yourself, you can contact a League Administrator "
+                                          f"and let them know your team picks, they will draft for you. If you do not draft before the drafting deadline "
+                                          f"elapses, a team will be assigned to you at random.",
+                              colour=settings.EMBED_COLOR)
+        for index, player in enumerate(sql.players.userid):
+            player_table = sql.retrieve_player_table(int(player))
+            user = await self.bot.fetch_user(int(player))
+            if int(settings.F1_ROUND) not in player_table['round'].to_list():
+                await user.send(embed=embed)
 
     async def is_team_invalid(self, random_team, player_table, user, grand_prix) -> bool:
         """
