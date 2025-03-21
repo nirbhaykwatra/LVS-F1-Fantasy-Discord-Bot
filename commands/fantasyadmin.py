@@ -13,55 +13,77 @@ logger = settings.create_logger('fantasy-admin')
 class FantasyAdmin(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.remind_undrafted.start()
+        self.reminder.start()
 
     def cog_unload(self):
-        self.remind_undrafted.cancel()
+        self.reminder.cancel()
 
 
     admin_group = app_commands.Group(name='admin',
                                      description='A group of admin commands.',
                                      guild_ids=[settings.GUILD_ID])
 
-    @staticmethod
-    def get_reminder_times() -> [time]:
+    # @staticmethod
+    # def get_reminder_times() -> [time]:
+    #     tz = pytz.UTC
+    #     times_list = []
+    #     draft_deadline: pd.Timestamp = sql.timings.loc[sql.timings['round'] == settings.F1_ROUND, 'deadline'].item()
+    #     draft_deadline_dt: datetime = draft_deadline.to_pydatetime()
+    #
+    #     dd_12: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=12)
+    #     dd_6: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=6)
+    #     dd_3: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=3)
+    #     dd_1: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=1)
+    #     dd_m_3: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(minutes=30)
+    #
+    #     times_list.append(datetime.time(hour=dd_12.hour, minute=dd_12.minute, second=dd_12.second, tzinfo=tz))
+    #     times_list.append(datetime.time(hour=dd_6.hour, minute=dd_6.minute,second=dd_6.second, tzinfo=tz))
+    #     times_list.append(datetime.time(hour=dd_3.hour, minute=dd_3.minute,second=dd_3.second, tzinfo=tz))
+    #     times_list.append(datetime.time(hour=dd_1.hour, minute=dd_1.minute,second=dd_1.second, tzinfo=tz))
+    #     times_list.append(datetime.time(hour=dd_m_3.hour, minute=dd_m_3.minute,second=dd_m_3.second, tzinfo=tz))
+    #
+    #     return times_list
+    #
+    #
+    tz = pytz.UTC
+    now = pd.Timestamp.now(tz)
+
+    rm_12: bool = False
+    rm_6: bool = False
+    rm_3: bool = False
+    rm_1: bool = False
+    rm_m_30: bool = False
+
+    sec_10 = now + pd.Timedelta(seconds=10)
+    sec_20 = now + pd.Timedelta(seconds=20)
+    logger.info(f"Reminder setup variables:\nnow: {now}\nsec_10: {sec_10}\nsec_20: {sec_20}")
+
+    @tasks.loop(seconds=1)
+    async def reminder(self):
         tz = pytz.UTC
-        times_list = []
-        draft_deadline: pd.Timestamp = sql.timings.loc[sql.timings['round'] == settings.F1_ROUND, 'deadline'].item()
-        draft_deadline_dt: datetime = draft_deadline.to_pydatetime()
-        logger.info(f"test_dt: {draft_deadline_dt.replace(tzinfo=tz)}")
-
-        dd_12: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=12)
-        dd_6: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=6)
-        dd_3: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=3)
-        dd_1: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=1)
-        dd_m_3: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(minutes=30)
-
-        times_list.append(datetime.time(hour=dd_12.hour, minute=dd_12.minute, second=dd_12.second, tzinfo=tz))
-        times_list.append(datetime.time(hour=dd_6.hour, minute=dd_6.minute,second=dd_6.second, tzinfo=tz))
-        times_list.append(datetime.time(hour=dd_3.hour, minute=dd_3.minute,second=dd_3.second, tzinfo=tz))
-        times_list.append(datetime.time(hour=dd_1.hour, minute=dd_1.minute,second=dd_1.second, tzinfo=tz))
-        times_list.append(datetime.time(hour=dd_m_3.hour, minute=dd_m_3.minute,second=dd_m_3.second, tzinfo=tz))
-        logger.info(f"Times list: {times_list}")
-
-        return times_list
+        now = pd.Timestamp.now(tz)
+        f1_round = settings.F1_ROUND
 
 
-    @tasks.loop(time=get_reminder_times())
-    async def remind_undrafted(self):
-        embed = discord.Embed(title='Draft Reminder',
-                              description=f"You have not yet drafted your team for the "
-                                          f"**{f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, 'EventName'].item()}**! "
-                                          f"Please draft your team at the earliest. You can check the drafting deadline by using the "
-                                          f"**/check-deadline** command.\n If you are unable to draft yourself, you can contact a League Administrator "
-                                          f"and let them know your team picks, they will draft for you. If you do not draft before the drafting deadline "
-                                          f"elapses, a team will be assigned to you at random.",
-                              colour=settings.EMBED_COLOR)
-        for index, player in enumerate(sql.players.userid):
-            player_table = sql.retrieve_player_table(int(player))
-            user = await self.bot.fetch_user(int(player))
-            if int(settings.F1_ROUND) not in player_table['round'].to_list():
-                await user.send(embed=embed)
+
+        # draft_deadline: pd.Timestamp = sql.timings.loc[sql.timings['round'] == settings.F1_ROUND, 'deadline'].item()
+        # draft_deadline_tz: pd.Timestamp = draft_deadline.tz_localize(tz="UTC")
+        #
+        # dd_12 = draft_deadline_tz + pd.Timedelta(seconds=10)
+        # dd_6 = draft_deadline_tz + pd.Timedelta(seconds=20)
+        # dd_3 = draft_deadline_tz - pd.Timedelta(hours=3)
+        # dd_1 = draft_deadline_tz - pd.Timedelta(hours=1)
+        # dd_m_30 = draft_deadline_tz - pd.Timedelta(minutes=30)
+
+        if self.sec_10 < now and not self.rm_12:
+            logger.info(f"12 hours reminder")
+            self.rm_12 = True
+
+        if self.sec_20 < now and not self.rm_6:
+            logger.info(f"6 hours reminder")
+            self.rm_6 = True
+
+        # del now, draft_deadline, draft_deadline_tz, dd_12, dd_6, dd_3, dd_1, dd_m_30
 
     async def is_team_invalid(self, random_team, player_table, user, grand_prix) -> bool:
         """
