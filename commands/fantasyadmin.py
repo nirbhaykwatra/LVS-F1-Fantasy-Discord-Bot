@@ -1050,6 +1050,23 @@ class FantasyAdmin(commands.Cog):
         await user.send(embed=embed)
         await interaction.response.send_message(f"Sent DM reminder to {user.name}.", ephemeral=True)
 
+    @admin_group.command(name='remind-undrafted', description='Send a draft reminder to undrafted users.')
+    @app_commands.checks.has_role('Administrator')
+    async def remind_undrafted(self, interaction: discord.Interaction):
+        embed = discord.Embed(title='Draft Reminder',
+                              description=f"You have not yet drafted your team for the "
+                                          f"**{f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, 'EventName'].item()}**! "
+                                          f"Please draft your team at the earliest. You can check the drafting deadline by using the "
+                                          f"**/check-deadline** command.\n If you are unable to draft yourself, you can contact a League Administrator "
+                                          f"and let them know your team picks, they will draft for you. If you do not draft before the drafting deadline "
+                                          f"elapses, a team will be assigned to you at random.",
+                              colour=settings.EMBED_COLOR)
+        for index, player in enumerate(sql.players.userid):
+            player_table = sql.retrieve_player_table(int(player))
+            user = await self.bot.fetch_user(int(player))
+            if int(settings.F1_ROUND) not in player_table['round'].to_list():
+                await user.send(embed=embed)
+
 
 
 async def setup(bot: commands.Bot) -> None:
