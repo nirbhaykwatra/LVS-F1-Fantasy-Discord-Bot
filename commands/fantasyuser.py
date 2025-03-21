@@ -311,7 +311,7 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='team', description='View your team.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
-    async def team(self, interaction: discord.Interaction, grand_prix: Choice[str] | None, user: discord.User = None, hidden: bool = True):
+    async def team(self, interaction: discord.Interaction, grand_prix: Choice[str] | None, user: discord.User = None, hidden: bool = True, show_all: bool = False):
         
         await interaction.response.defer(ephemeral=hidden)
 
@@ -342,9 +342,138 @@ class FantasyUser(commands.Cog):
                 await interaction.followup.send(embed=embed_deadline, ephemeral=True)
                 return
 
+        if show_all:
+            team_embeds = [discord.Embed()]
+
+            for user in sql.players.userid.to_list():
+                guild = await self.bot.fetch_guild(settings.GUILD_ID)
+                user = await guild.fetch_member(int(user))
+                logger.info(f"Retrieving team for {user.name}...")
+
+                player_table = sql.retrieve_player_table(user.id)
+                driver_info = f1.get_driver_info(season='current')
+                current_round_counterpicks = sql.counterpick[(sql.counterpick['round'] == grand_prix.value) & (
+                            sql.counterpick['targetuser'] == user.id)].targetdriver.array
+
+                # region Team Embed
+                embed = discord.Embed(
+                    title=f"{sql.players.loc[sql.players['userid'] == user.id, 'teamname'].item()}",
+                    description=f"{grand_prix.name}",
+                    colour=settings.EMBED_COLOR)
+
+                if any(player_table['round'] == int(grand_prix.value)):
+
+                    tla_driver1 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item()
+                    tla_driver2 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver2'].item()
+                    tla_driver3 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver3'].item()
+                    tla_wildcard = player_table.loc[player_table['round'] == int(grand_prix.value), 'wildcard'].item()
+                    short_team = player_table.loc[player_table['round'] == int(grand_prix.value), 'constructor'].item()
+
+                    em_driver1 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'givenName'].item()} "
+                                  f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'familyName'].item()}")
+                    em_driver2 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'givenName'].item()} "
+                                  f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'familyName'].item()}")
+                    em_driver3 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'givenName'].item()} "
+                                  f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'familyName'].item()}")
+                    em_wildcard = (f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'givenName'].item()} "
+                                   f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'familyName'].item()}")
+                    em_team = dt.team_names_full[short_team]
+
+                    embed.set_author(name=f"{sql.players.loc[sql.players['userid'] == user.id, 'username'].item()} ")
+                    embed.set_thumbnail(url=user.display_avatar.url)
+                    embed.add_field(name=f"{em_driver1}",
+                                    value="Driver 1", inline=True)
+                    embed.add_field(name=f"{em_driver2}",
+                                    value="Driver 2", inline=True)
+                    embed.add_field(name=f"{em_driver3}",
+                                    value="Driver 3", inline=True)
+                    embed.add_field(name=f"{em_wildcard}",
+                                    value="Bogey Driver", inline=True)
+                    embed.add_field(name=f"{em_team}",
+                                    value="Constructor", inline=True)
+
+                    if current_round_counterpicks.size != 0:
+                        embed.add_field(name=f"Counter Pick Information", value=f"For the {grand_prix.name}.",
+                                        inline=False)
+                        for driver in current_round_counterpicks:
+                            embed.add_field(
+                                name=f"{driver_info.loc[driver_info['driverCode'] == driver, 'givenName'].item()} "
+                                     f"{driver_info.loc[driver_info['driverCode'] == driver, 'familyName'].item()}",
+                                value=f"Banned for this round!", inline=True)
+
+                    # endregion
+                    await interaction.followup.send(embed=embed, ephemeral=hidden)
+
+                elif any(player_table['round'] == (int(grand_prix.value) - 1)):
+                    # region Team Embed
+                    embed_previous = discord.Embed(
+                        title=f"There is no team set for round {grand_prix.value}",
+                        description=f"Showing the previous round's team.",
+                        colour=settings.EMBED_COLOR)
+
+                    tla_driver1 = player_table.loc[
+                        player_table['round'] == (int(grand_prix.value) - 1), 'driver1'].item()
+                    tla_driver2 = player_table.loc[
+                        player_table['round'] == (int(grand_prix.value) - 1), 'driver2'].item()
+                    tla_driver3 = player_table.loc[
+                        player_table['round'] == (int(grand_prix.value) - 1), 'driver3'].item()
+                    tla_wildcard = player_table.loc[
+                        player_table['round'] == (int(grand_prix.value) - 1), 'wildcard'].item()
+                    short_team = player_table.loc[
+                        player_table['round'] == (int(grand_prix.value) - 1), 'constructor'].item()
+
+                    em_driver1 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'givenName'].item()} "
+                                  f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'familyName'].item()}")
+                    em_driver2 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'givenName'].item()} "
+                                  f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'familyName'].item()}")
+                    em_driver3 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'givenName'].item()} "
+                                  f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'familyName'].item()}")
+                    em_wildcard = (f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'givenName'].item()} "
+                                   f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'familyName'].item()}")
+                    em_team = dt.team_names_full[short_team]
+
+                    embed_previous.set_author(
+                        name=f"{sql.players.loc[sql.players['userid'] == user.id, 'username'].item()} ")
+                    embed_previous.set_thumbnail(url=user.display_avatar.url)
+                    embed_previous.add_field(name=f"{em_driver1}",
+                                             value="Driver 1", inline=True)
+                    embed_previous.add_field(name=f"{em_driver2}",
+                                             value="Driver 2", inline=True)
+                    embed_previous.add_field(name=f"{em_driver3}",
+                                             value="Driver 3", inline=True)
+                    embed_previous.add_field(name=f"{em_wildcard}",
+                                             value="Bogey Driver", inline=True)
+                    embed_previous.add_field(name=f"{em_team}",
+                                             value="Constructor", inline=True)
+
+                    if current_round_counterpicks.size != 0:
+                        embed.add_field(name=f"Counter Pick Information", value=f"For the {grand_prix.name}.",
+                                        inline=False)
+                    for driver in current_round_counterpicks:
+                        embed.add_field(
+                            name=f"{driver_info.loc[driver_info['driverCode'] == driver, 'givenName'].item()} "
+                                 f"{driver_info.loc[driver_info['driverCode'] == driver, 'familyName'].item()}",
+                            value=f"Banned for this round!", inline=True)
+                    # endregion
+
+                    await interaction.followup.send(embed=embed_previous, ephemeral=hidden)
+
+                else:
+                    embed_fallback = discord.Embed(
+                        title=f"{sql.players.loc[sql.players['userid'] == user.id, 'teamname'].item()}",
+                        description=f"There is no team set for round {grand_prix.value} or the previous round.",
+                        colour=settings.EMBED_COLOR
+                    )
+                    embed_fallback.set_author(name=str(user.name))
+                    embed_fallback.set_thumbnail(url=user.display_avatar.url)
+
+                    await interaction.followup.send(embed=embed_fallback, ephemeral=hidden)
+
+            return
+
         player_table = sql.retrieve_player_table(user.id)
         driver_info = f1.get_driver_info(season='current')
-        current_round_counterpicks = sql.counterpick[(sql.counterpick['round'] == grand_prix.value) & (sql.counterpick['targetuser'] == interaction.user.id)].targetdriver.array
+        current_round_counterpicks = sql.counterpick[(sql.counterpick['round'] == grand_prix.value) & (sql.counterpick['targetuser'] == user.id)].targetdriver.array
 
         # region Team Embed
         embed = discord.Embed(
@@ -393,64 +522,61 @@ class FantasyUser(commands.Cog):
             # endregion
 
             await interaction.followup.send(f'',embed=embed, ephemeral=hidden)
+        elif any(player_table['round'] == (int(grand_prix.value) - 1)):
+        # region Team Embed
+            embed_previous = discord.Embed(
+                title=f"There is no team set for round {grand_prix.value}",
+                description=f"Showing the previous round's team.",
+                colour=settings.EMBED_COLOR)
 
+            tla_driver1 = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'driver1'].item()
+            tla_driver2 = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'driver2'].item()
+            tla_driver3 = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'driver3'].item()
+            tla_wildcard = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'wildcard'].item()
+            short_team = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'constructor'].item()
+
+            em_driver1 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'givenName'].item()} "
+                          f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'familyName'].item()}")
+            em_driver2 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'givenName'].item()} "
+                          f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'familyName'].item()}")
+            em_driver3 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'givenName'].item()} "
+                          f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'familyName'].item()}")
+            em_wildcard = (f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'givenName'].item()} "
+                           f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'familyName'].item()}")
+            em_team = dt.team_names_full[short_team]
+
+            embed_previous.set_author(
+                name=f"{sql.players.loc[sql.players['userid'] == user.id, 'username'].item()} ")
+            embed_previous.set_thumbnail(url=user.display_avatar.url)
+            embed_previous.add_field(name=f"{em_driver1}",
+                            value="Driver 1", inline=True)
+            embed_previous.add_field(name=f"{em_driver2}",
+                            value="Driver 2", inline=True)
+            embed_previous.add_field(name=f"{em_driver3}",
+                            value="Driver 3", inline=True)
+            embed_previous.add_field(name=f"{em_wildcard}",
+                            value="Bogey Driver", inline=True)
+            embed_previous.add_field(name=f"{em_team}",
+                            value="Constructor", inline=True)
+
+            if current_round_counterpicks.size != 0:
+                embed.add_field(name=f"Counter Pick Information", value=f"For the {grand_prix.name}.", inline=False)
+            for driver in current_round_counterpicks:
+                embed.add_field(name=f"{driver_info.loc[driver_info['driverCode'] == driver, 'givenName'].item()} "
+                                     f"{driver_info.loc[driver_info['driverCode'] == driver, 'familyName'].item()}", value=f"Banned for this round!", inline=True)
+            # endregion
+
+            await interaction.followup.send(f'', embed=embed_previous, ephemeral=True)
         else:
-            # region Team Embed
-            if any(player_table['round'] == (int(grand_prix.value) - 1)):
+            embed_fallback = discord.Embed(
+                title=f"{sql.players.loc[sql.players['userid'] == user.id, 'teamname'].item()}",
+                description=f"There is no team set for round {grand_prix.value} or the previous round.",
+                colour=settings.EMBED_COLOR
+            )
+            embed_fallback.set_author(name=str(user.name))
+            embed_fallback.set_thumbnail(url=user.display_avatar.url)
 
-                embed_previous = discord.Embed(
-                    title=f"There is no team set for round {grand_prix.value}",
-                    description=f"Showing the previous round's team.",
-                    colour=settings.EMBED_COLOR)
-
-                tla_driver1 = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'driver1'].item()
-                tla_driver2 = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'driver2'].item()
-                tla_driver3 = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'driver3'].item()
-                tla_wildcard = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'wildcard'].item()
-                short_team = player_table.loc[player_table['round'] == (int(grand_prix.value) - 1), 'constructor'].item()
-
-                em_driver1 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'givenName'].item()} "
-                              f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'familyName'].item()}")
-                em_driver2 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'givenName'].item()} "
-                              f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'familyName'].item()}")
-                em_driver3 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'givenName'].item()} "
-                              f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'familyName'].item()}")
-                em_wildcard = (f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'givenName'].item()} "
-                               f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'familyName'].item()}")
-                em_team = dt.team_names_full[short_team]
-
-                embed_previous.set_author(
-                    name=f"{sql.players.loc[sql.players['userid'] == user.id, 'username'].item()} ")
-                embed_previous.set_thumbnail(url=user.display_avatar.url)
-                embed_previous.add_field(name=f"{em_driver1}",
-                                value="Driver 1", inline=True)
-                embed_previous.add_field(name=f"{em_driver2}",
-                                value="Driver 2", inline=True)
-                embed_previous.add_field(name=f"{em_driver3}",
-                                value="Driver 3", inline=True)
-                embed_previous.add_field(name=f"{em_wildcard}",
-                                value="Wildcard", inline=True)
-                embed_previous.add_field(name=f"{em_team}",
-                                value="Constructor", inline=True)
-
-                if current_round_counterpicks.size != 0:
-                    embed.add_field(name=f"Counter Pick Information", value=f"For the {grand_prix.name}.", inline=False)
-                for driver in current_round_counterpicks:
-                    embed.add_field(name=f"{driver_info.loc[driver_info['driverCode'] == driver, 'givenName'].item()} "
-                                         f"{driver_info.loc[driver_info['driverCode'] == driver, 'familyName'].item()}", value=f"Banned for this round!", inline=True)
-                # endregion
-
-                await interaction.followup.send(f'', embed=embed_previous, ephemeral=True)
-            else:
-                embed_fallback = discord.Embed(
-                    title=f"{sql.players.loc[sql.players['userid'] == user.id, 'teamname'].item()}",
-                    description=f"There is no team set for round {grand_prix.value} or the previous round.",
-                    colour=settings.EMBED_COLOR
-                )
-                embed_fallback.set_author(name=str(user.name))
-                embed_fallback.set_thumbnail(url=user.display_avatar.url)
-
-                await interaction.followup.send(f'', embed=embed_fallback, ephemeral=hidden)
+            await interaction.followup.send(f'', embed=embed_fallback, ephemeral=hidden)
 
 
     @app_commands.command(name='exhausted', description='View your team exhaustions.')
