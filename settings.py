@@ -66,7 +66,7 @@ COUNTERPICK_LIMIT = 3
 DRIVER_BAN_LIMIT = 2
 
 GUILD_ID = int(os.getenv('GUILD_ID'))
-
+WEATHER_API_KEY = os.getenv('WEATHER_API_KEY')
 TOKEN = os.getenv('TOKEN')
 #endregion
 
