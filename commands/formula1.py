@@ -1,6 +1,7 @@
 from dateutil.relativedelta import relativedelta
 import settings
 import discord
+import requests
 import pandas as pd
 from discord import app_commands
 from discord.app_commands import Choice
@@ -33,7 +34,6 @@ class Formula1(commands.Cog):
             
         driverId = driver_info.loc[driver_info['driverCode'] == driver.value, 'driverId'].item()
 
-        #TODO: Create a color map where {constructorId: color}. Use this map to get embed colors for both drivers and teams.
         #region Driver Info embed
         driver_info_embed = discord.Embed(title=f'{driver.name}',
                                           url=driver_info.loc[driver_info["driverCode"] == driver.value, "driverUrl"].item(),
@@ -132,7 +132,9 @@ class Formula1(commands.Cog):
     async def get_grand_prix_data(self, interaction: discord.Interaction, grand_prix: dt.Choice[str]):
         #TODO: Create embed with grand prix circuit, country and start time information. If there are some interesting historical stats,
         # those would be nice too.
-        
+        #TODO: Use OpenWeatherMap API to get latest weather data for specified Grand Prix.
+        # If possible, get ambient temperature, humidity, weather condition (clear, overcast, cloudy, rain, snow, etc.)
+        # Get track temperature, average
         await interaction.response.defer(ephemeral=True)
         
         event_schedule = f1.event_schedule
@@ -141,6 +143,7 @@ class Formula1(commands.Cog):
         
         grand_prix_info = event_schedule.loc[event_schedule['RoundNumber'] == int(grand_prix.value)]
         grand_prix_circuit = circuit_info.loc[circuit_info['circuitId'] == dt.circuit_map[grand_prix.value], 'circuitName']
+        grand_prix_circuit_series = circuit_info.loc[circuit_info['circuitId'] == dt.circuit_map[grand_prix.value]]
         
         session1Utc: pd.Timestamp = grand_prix_info.Session1DateUtc.item().tz_localize('UTC')
         session2Utc: pd.Timestamp = grand_prix_info.Session2DateUtc.item().tz_localize('UTC')
@@ -148,9 +151,18 @@ class Formula1(commands.Cog):
         session4Utc: pd.Timestamp = grand_prix_info.Session4DateUtc.item().tz_localize('UTC')
         session5Utc: pd.Timestamp = grand_prix_info.Session5DateUtc.item().tz_localize('UTC')
 
+        api_key = settings.WEATHER_API_KEY
+
+        current_url = f"https://api.openweathermap.org/data/2.5/weather?lat={grand_prix_circuit_series.lat.item()}&lon={grand_prix_circuit_series.long.item()}&appid={api_key}&units=metric"
+        current_response = requests.get(current_url)
+        current_weather_data = current_response.json()
+
+        current_temperature = current_weather_data['main']['temp']
+        current_weather_conditions = current_weather_data['weather'][0]['main']
         
         embed = discord.Embed(title=f"{grand_prix_info.OfficialEventName.item()}",
-                              description=f"{grand_prix_circuit.item()}",
+                              description=f"{grand_prix_circuit.item()}\n{current_weather_conditions} {dt.weather_icon_map[current_weather_data['weather'][0]['icon']]}"
+                                          f" - {round(float(current_temperature))}°C",
                               colour=settings.EMBED_COLOR)
 
         if grand_prix_info.EventFormat.item() == "conventional":
@@ -191,6 +203,71 @@ class Formula1(commands.Cog):
         embed.set_image(url=f"https://media.formula1.com/image/upload/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/{dt.img_url_map[grand_prix.value]}_Circuit")
                 
         await interaction.followup.send(embed=embed, ephemeral=True)
+
+    @stats_group.command(name='weather', description='Get weather information about Formula 1 Grand Prix events.')
+    @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
+    async def weather(self, interaction: discord.Interaction, grand_prix: dt.Choice[str]):
+        await interaction.response.defer(ephemeral=True)
+
+        event_schedule = f1.event_schedule
+        circuit_info = f1.ergast.get_circuits(season='current')
+        api_key = settings.WEATHER_API_KEY
+
+        grand_prix_info = event_schedule.loc[event_schedule['RoundNumber'] == int(grand_prix.value)]
+        grand_prix_circuit = circuit_info.loc[
+            circuit_info['circuitId'] == dt.circuit_map[grand_prix.value]]
+
+        current_url = f"https://api.openweathermap.org/data/2.5/weather?lat={grand_prix_circuit.lat.item()}&lon={grand_prix_circuit.long.item()}&appid={api_key}&units=metric"
+        current_response = requests.get(current_url)
+        current_weather_data = current_response.json()
+
+        forecast_url = f"https://api.openweathermap.org/data/2.5/forecast?lat={grand_prix_circuit.lat.item()}&lon={grand_prix_circuit.long.item()}&appid={api_key}&units=metric"
+        forecast_response = requests.get(forecast_url)
+        forecast_weather_data = forecast_response.json()
+
+        # Extract weather information
+        current_temperature = current_weather_data['main']['temp']
+        current_weather_conditions = current_weather_data['weather'][0]['main']
+        current_humidity = current_weather_data['main']['humidity']
+        current_pressure = current_weather_data['main']['pressure']
+        current_wind_speed = current_weather_data['wind']['speed']
+        current_wind_direction = current_weather_data['wind']['deg']
+
+        embed_current = discord.Embed(
+            title=f"{grand_prix_circuit.circuitName.item()}",
+            description=f"{grand_prix_circuit.lat.item()}, {grand_prix_circuit.long.item()}",
+            colour=settings.EMBED_COLOR
+        )
+        embed_current.set_author(name=f"Current Weather")
+
+        embed_current.add_field(name="Overview", value=f"", inline=False)
+        embed_current.add_field(name="Condition", value=f"{current_weather_conditions} {dt.weather_icon_map[current_weather_data['weather'][0]['icon']]}")
+        embed_current.add_field(name="Temperature", value=f"{round(float(current_temperature))}°C")
+        embed_current.add_field(name="Humidity", value=f"{current_humidity}%")
+        embed_current.add_field(name="Pressure", value=f"{current_pressure} hPa")
+
+        embed_current.add_field(name="Wind", value=f"", inline=False)
+        embed_current.add_field(name="Wind Speed", value=f"{current_wind_speed} m/s")
+        embed_current.add_field(name="Wind Direction", value=f"{current_wind_direction} degrees")
+
+        embed_forecast = discord.Embed(
+            title=f"5 Day Forecast",
+            description=f"",
+            colour=settings.EMBED_COLOR
+        )
+        embed_forecast.set_author(name=f"{grand_prix_circuit.circuitName.item()}")
+        forecast_count = forecast_weather_data['cnt']
+
+        for i in range(0, forecast_count, 8):
+            forecast_date = pd.to_datetime(int(forecast_weather_data['list'][i]['dt']), unit='s')
+            forecast_temperature = forecast_weather_data['list'][i]['main']['temp']
+            forecast_weather_conditions = forecast_weather_data['list'][i]['weather'][0]['main']
+            logger.info(f"Forecast {i} on {forecast_date.strftime('%A, %d %B %Y at %I:%M %p')}: {forecast_weather_conditions}, {forecast_temperature}\n ")
+            embed_forecast.add_field(name=f"{forecast_date.strftime('%A, %d %B %Y')}", value=f"", inline=False)
+            embed_forecast.add_field(name="Condition", value=f"{forecast_weather_conditions}  {dt.weather_icon_map[forecast_weather_data['list'][i]['weather'][0]['icon']]}")
+            embed_forecast.add_field(name="Temperature", value=f"{round(float(forecast_temperature))}°C")
+
+        await interaction.followup.send(embeds=[embed_current, embed_forecast], ephemeral=True)
 
 
 async def setup(bot: commands.Bot) -> None:
