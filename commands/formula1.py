@@ -199,14 +199,14 @@ class Formula1(commands.Cog):
         embed.add_field(name=f"{grand_prix_info.Session5.item()}",
                         value=f"{session5Utc.astimezone(user_tz).strftime('%A, %d %B %Y at %I:%M %p')}",
                         inline=True)
-        
+
         embed.set_image(url=f"https://media.formula1.com/image/upload/content/dam/fom-website/2018-redesign-assets/Circuit%20maps%2016x9/{dt.img_url_map[grand_prix.value]}_Circuit")
-                
+
         await interaction.followup.send(embed=embed, ephemeral=True)
 
     @stats_group.command(name='weather', description='Get weather information about Formula 1 Grand Prix events.')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
-    async def weather(self, interaction: discord.Interaction, grand_prix: dt.Choice[str]):
+    async def weather(self, interaction: discord.Interaction, grand_prix: dt.Choice[str], forecast: bool = False):
         await interaction.response.defer(ephemeral=True)
 
         event_schedule = f1.event_schedule
@@ -217,17 +217,50 @@ class Formula1(commands.Cog):
         grand_prix_circuit = circuit_info.loc[
             circuit_info['circuitId'] == dt.circuit_map[grand_prix.value]]
 
+        if forecast:
+            forecast_url = f"https://api.openweathermap.org/data/2.5/forecast?lat={grand_prix_circuit.lat.item()}&lon={grand_prix_circuit.long.item()}&appid={api_key}&units=metric"
+            forecast_response = requests.get(forecast_url)
+            forecast_weather_data = forecast_response.json()
+            forecast_count = forecast_weather_data['cnt']
+
+            loop_count = 0
+            for i in range(0, forecast_count, 8):
+                loop_count += 1
+                forecast_date = pd.to_datetime(int(forecast_weather_data['list'][i]['dt']), unit='s')
+                forecast_temperature = forecast_weather_data['list'][i]['main']['temp']
+                forecast_weather_conditions = forecast_weather_data['list'][i]['weather'][0]['description'].title()
+
+                forecast_humidity = forecast_weather_data['list'][i]['main']['humidity']
+                forecast_pressure = forecast_weather_data['list'][i]['main']['pressure']
+                forecast_wind_speed = forecast_weather_data['list'][i]['wind']['speed']
+                forecast_wind_direction = forecast_weather_data['list'][i]['wind']['deg']
+
+                embed_forecast = discord.Embed(
+                    title=f"{grand_prix_circuit.circuitName.item()}",
+                    description=f"Lat/Long - {grand_prix_circuit.lat.item()}, {grand_prix_circuit.long.item()}",
+                    colour=settings.EMBED_COLOR
+                )
+                embed_forecast.set_author(name=f"Day {loop_count} Forecast")
+
+                embed_forecast.add_field(name=f"{forecast_date.strftime('%A, %d %B %Y')}", value=f"", inline=False)
+                embed_forecast.add_field(name="Condition", value=f"{forecast_weather_conditions}  {dt.weather_icon_map[forecast_weather_data['list'][i]['weather'][0]['icon']]}")
+                embed_forecast.add_field(name="Temperature", value=f"{round(float(forecast_temperature))}°C")
+                embed_forecast.add_field(name="Humidity", value=f"{forecast_humidity}%")
+                embed_forecast.add_field(name="Pressure", value=f"{forecast_pressure} hPa")
+                embed_forecast.add_field(name="Wind Speed", value=f"{forecast_wind_speed} m/s")
+                embed_forecast.add_field(name="Wind Direction", value=f"{forecast_wind_direction} degrees")
+
+                await interaction.followup.send(embed=embed_forecast, ephemeral=True)
+            loop_count = 0
+            return
+
         current_url = f"https://api.openweathermap.org/data/2.5/weather?lat={grand_prix_circuit.lat.item()}&lon={grand_prix_circuit.long.item()}&appid={api_key}&units=metric"
         current_response = requests.get(current_url)
         current_weather_data = current_response.json()
 
-        forecast_url = f"https://api.openweathermap.org/data/2.5/forecast?lat={grand_prix_circuit.lat.item()}&lon={grand_prix_circuit.long.item()}&appid={api_key}&units=metric"
-        forecast_response = requests.get(forecast_url)
-        forecast_weather_data = forecast_response.json()
-
         # Extract weather information
         current_temperature = current_weather_data['main']['temp']
-        current_weather_conditions = current_weather_data['weather'][0]['main']
+        current_weather_conditions = current_weather_data['weather'][0]['description'].title()
         current_humidity = current_weather_data['main']['humidity']
         current_pressure = current_weather_data['main']['pressure']
         current_wind_speed = current_weather_data['wind']['speed']
@@ -235,7 +268,7 @@ class Formula1(commands.Cog):
 
         embed_current = discord.Embed(
             title=f"{grand_prix_circuit.circuitName.item()}",
-            description=f"{grand_prix_circuit.lat.item()}, {grand_prix_circuit.long.item()}",
+            description=f"Lat/Long - {grand_prix_circuit.lat.item()}, {grand_prix_circuit.long.item()}",
             colour=settings.EMBED_COLOR
         )
         embed_current.set_author(name=f"Current Weather")
@@ -245,29 +278,11 @@ class Formula1(commands.Cog):
         embed_current.add_field(name="Temperature", value=f"{round(float(current_temperature))}°C")
         embed_current.add_field(name="Humidity", value=f"{current_humidity}%")
         embed_current.add_field(name="Pressure", value=f"{current_pressure} hPa")
-
-        embed_current.add_field(name="Wind", value=f"", inline=False)
         embed_current.add_field(name="Wind Speed", value=f"{current_wind_speed} m/s")
         embed_current.add_field(name="Wind Direction", value=f"{current_wind_direction} degrees")
 
-        embed_forecast = discord.Embed(
-            title=f"5 Day Forecast",
-            description=f"",
-            colour=settings.EMBED_COLOR
-        )
-        embed_forecast.set_author(name=f"{grand_prix_circuit.circuitName.item()}")
-        forecast_count = forecast_weather_data['cnt']
 
-        for i in range(0, forecast_count, 8):
-            forecast_date = pd.to_datetime(int(forecast_weather_data['list'][i]['dt']), unit='s')
-            forecast_temperature = forecast_weather_data['list'][i]['main']['temp']
-            forecast_weather_conditions = forecast_weather_data['list'][i]['weather'][0]['main']
-            logger.info(f"Forecast {i} on {forecast_date.strftime('%A, %d %B %Y at %I:%M %p')}: {forecast_weather_conditions}, {forecast_temperature}\n ")
-            embed_forecast.add_field(name=f"{forecast_date.strftime('%A, %d %B %Y')}", value=f"", inline=False)
-            embed_forecast.add_field(name="Condition", value=f"{forecast_weather_conditions}  {dt.weather_icon_map[forecast_weather_data['list'][i]['weather'][0]['icon']]}")
-            embed_forecast.add_field(name="Temperature", value=f"{round(float(forecast_temperature))}°C")
-
-        await interaction.followup.send(embeds=[embed_current, embed_forecast], ephemeral=True)
+        await interaction.followup.send(embed=embed_current, ephemeral=True)
 
 
 async def setup(bot: commands.Bot) -> None:
