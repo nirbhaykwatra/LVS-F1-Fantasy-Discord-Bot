@@ -13,77 +13,55 @@ logger = settings.create_logger('fantasy-admin')
 class FantasyAdmin(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        self.reminder.start()
-
-    def cog_unload(self):
-        self.reminder.cancel()
+    #     self.reminder.start()
+    #
+    # def cog_unload(self):
+    #     self.reminder.cancel()
 
 
     admin_group = app_commands.Group(name='admin',
                                      description='A group of admin commands.',
                                      guild_ids=[settings.GUILD_ID])
 
-    # @staticmethod
-    # def get_reminder_times() -> [time]:
+    # tz = pytz.UTC
+    # now = pd.Timestamp.now(tz)
+    #
+    # rm_12: bool = False
+    # rm_6: bool = False
+    # rm_3: bool = False
+    # rm_1: bool = False
+    # rm_m_30: bool = False
+    #
+    # sec_10 = now + pd.Timedelta(seconds=10)
+    # sec_20 = now + pd.Timedelta(seconds=20)
+    # logger.info(f"Reminder setup variables:\nnow: {now}\nsec_10: {sec_10}\nsec_20: {sec_20}")
+    #
+    # @tasks.loop(seconds=1)
+    # async def reminder(self):
     #     tz = pytz.UTC
-    #     times_list = []
-    #     draft_deadline: pd.Timestamp = sql.timings.loc[sql.timings['round'] == settings.F1_ROUND, 'deadline'].item()
-    #     draft_deadline_dt: datetime = draft_deadline.to_pydatetime()
-    #
-    #     dd_12: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=12)
-    #     dd_6: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=6)
-    #     dd_3: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=3)
-    #     dd_1: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(hours=1)
-    #     dd_m_3: datetime = draft_deadline_dt.replace(tzinfo=tz) - datetime.timedelta(minutes=30)
-    #
-    #     times_list.append(datetime.time(hour=dd_12.hour, minute=dd_12.minute, second=dd_12.second, tzinfo=tz))
-    #     times_list.append(datetime.time(hour=dd_6.hour, minute=dd_6.minute,second=dd_6.second, tzinfo=tz))
-    #     times_list.append(datetime.time(hour=dd_3.hour, minute=dd_3.minute,second=dd_3.second, tzinfo=tz))
-    #     times_list.append(datetime.time(hour=dd_1.hour, minute=dd_1.minute,second=dd_1.second, tzinfo=tz))
-    #     times_list.append(datetime.time(hour=dd_m_3.hour, minute=dd_m_3.minute,second=dd_m_3.second, tzinfo=tz))
-    #
-    #     return times_list
+    #     now = pd.Timestamp.now(tz)
+    #     f1_round = settings.F1_ROUND
     #
     #
-    tz = pytz.UTC
-    now = pd.Timestamp.now(tz)
-
-    rm_12: bool = False
-    rm_6: bool = False
-    rm_3: bool = False
-    rm_1: bool = False
-    rm_m_30: bool = False
-
-    sec_10 = now + pd.Timedelta(seconds=10)
-    sec_20 = now + pd.Timedelta(seconds=20)
-    logger.info(f"Reminder setup variables:\nnow: {now}\nsec_10: {sec_10}\nsec_20: {sec_20}")
-
-    @tasks.loop(seconds=1)
-    async def reminder(self):
-        tz = pytz.UTC
-        now = pd.Timestamp.now(tz)
-        f1_round = settings.F1_ROUND
-
-
-
-        # draft_deadline: pd.Timestamp = sql.timings.loc[sql.timings['round'] == settings.F1_ROUND, 'deadline'].item()
-        # draft_deadline_tz: pd.Timestamp = draft_deadline.tz_localize(tz="UTC")
-        #
-        # dd_12 = draft_deadline_tz + pd.Timedelta(seconds=10)
-        # dd_6 = draft_deadline_tz + pd.Timedelta(seconds=20)
-        # dd_3 = draft_deadline_tz - pd.Timedelta(hours=3)
-        # dd_1 = draft_deadline_tz - pd.Timedelta(hours=1)
-        # dd_m_30 = draft_deadline_tz - pd.Timedelta(minutes=30)
-
-        if self.sec_10 < now and not self.rm_12:
-            logger.info(f"12 hours reminder")
-            self.rm_12 = True
-
-        if self.sec_20 < now and not self.rm_6:
-            logger.info(f"6 hours reminder")
-            self.rm_6 = True
-
-        # del now, draft_deadline, draft_deadline_tz, dd_12, dd_6, dd_3, dd_1, dd_m_30
+    #
+    #     # draft_deadline: pd.Timestamp = sql.timings.loc[sql.timings['round'] == settings.F1_ROUND, 'deadline'].item()
+    #     # draft_deadline_tz: pd.Timestamp = draft_deadline.tz_localize(tz="UTC")
+    #     #
+    #     # dd_12 = draft_deadline_tz + pd.Timedelta(seconds=10)
+    #     # dd_6 = draft_deadline_tz + pd.Timedelta(seconds=20)
+    #     # dd_3 = draft_deadline_tz - pd.Timedelta(hours=3)
+    #     # dd_1 = draft_deadline_tz - pd.Timedelta(hours=1)
+    #     # dd_m_30 = draft_deadline_tz - pd.Timedelta(minutes=30)
+    #
+    #     if self.sec_10 < now and not self.rm_12:
+    #         logger.info(f"12 hours reminder")
+    #         self.rm_12 = True
+    #
+    #     if self.sec_20 < now and not self.rm_6:
+    #         logger.info(f"6 hours reminder")
+    #         self.rm_6 = True
+    #
+    #     # del now, draft_deadline, draft_deadline_tz, dd_12, dd_6, dd_3, dd_1, dd_m_30
 
     async def is_team_invalid(self, random_team, player_table, user, grand_prix) -> bool:
         """
