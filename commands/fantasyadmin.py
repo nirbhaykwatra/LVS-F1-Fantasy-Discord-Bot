@@ -985,10 +985,10 @@ class FantasyAdmin(commands.Cog):
                 
         await interaction.followup.send(embed=undrafted_embed, ephemeral=True)
 
-    @admin_group.command(name='shut-down', description='Shut down or restart the bot.')
+    @admin_group.command(name='restart', description='Shut down or restart the bot.')
     @app_commands.checks.has_role('Administrator')
-    async def shutdown_command(self, interaction: discord.Interaction, restart: bool = True):
-        if restart:
+    async def shutdown_command(self, interaction: discord.Interaction, shut_down: bool = False):
+        if not shut_down:
             await interaction.response.send_message(f"Restarting Fantasy Manager...", ephemeral=True)
             settings.exit_handler()
             os.execv(sys.executable, ['python'] + sys.argv)
