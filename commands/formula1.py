@@ -211,6 +211,9 @@ class Formula1(commands.Cog):
 
         event_schedule = f1.event_schedule
         circuit_info = f1.ergast.get_circuits(season='current')
+        user_tz = sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item()
+        if user_tz is None:
+            user_tz = 'UTC'
         api_key = settings.WEATHER_API_KEY
 
         grand_prix_info = event_schedule.loc[event_schedule['RoundNumber'] == int(grand_prix.value)]
@@ -227,6 +230,8 @@ class Formula1(commands.Cog):
             for i in range(0, forecast_count, 8):
                 loop_count += 1
                 forecast_date = pd.to_datetime(int(forecast_weather_data['list'][i]['dt']), unit='s')
+                forecast_date_utc = forecast_date.tz_localize('UTC')
+                forecast_date_local = forecast_date_utc.astimezone(user_tz)
                 forecast_temperature = forecast_weather_data['list'][i]['main']['temp']
                 forecast_weather_conditions = forecast_weather_data['list'][i]['weather'][0]['description'].title()
 
@@ -242,7 +247,7 @@ class Formula1(commands.Cog):
                 )
                 embed_forecast.set_author(name=f"Day {loop_count} Forecast")
 
-                embed_forecast.add_field(name=f"{forecast_date.strftime('%A, %d %B %Y')}", value=f"", inline=False)
+                embed_forecast.add_field(name=f"{forecast_date_local.strftime('%A, %d %B %Y')}", value=f"", inline=False)
                 embed_forecast.add_field(name="Condition", value=f"{forecast_weather_conditions}  {dt.weather_icon_map[forecast_weather_data['list'][i]['weather'][0]['icon']]}")
                 embed_forecast.add_field(name="Temperature", value=f"{round(float(forecast_temperature))}°C")
                 embed_forecast.add_field(name="Humidity", value=f"{forecast_humidity}%")
