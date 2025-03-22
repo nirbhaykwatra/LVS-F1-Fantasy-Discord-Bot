@@ -1002,9 +1002,6 @@ class FantasyUser(commands.Cog):
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def points_table(self, interaction: discord.Interaction, hidden: bool = True):
 
-        for user in sql.players.userid:
-            results_prep = sql.results.loc[sql.results['userid'] == user, 'total'] = sql.players.loc[sql.players['userid'] == user, 'points']
-
         results_prep = sql.results.drop(axis=1, columns=['userid',
                                                          'round1breakdown', 'round2breakdown', 'round3breakdown',
                                                          'round4breakdown', 'round5breakdown', 'round6breakdown',
