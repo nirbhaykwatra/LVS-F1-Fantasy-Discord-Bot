@@ -254,6 +254,7 @@ class Formula1(commands.Cog):
                 embed_forecast.add_field(name="Pressure", value=f"{forecast_pressure} hPa")
                 embed_forecast.add_field(name="Wind Speed", value=f"{forecast_wind_speed} m/s")
                 embed_forecast.add_field(name="Wind Direction", value=f"{forecast_wind_direction} degrees")
+                embed_forecast.set_footer(text="Powered by OpenWeatherMap")
 
                 await interaction.followup.send(embed=embed_forecast, ephemeral=True)
             loop_count = 0
@@ -285,7 +286,7 @@ class Formula1(commands.Cog):
         embed_current.add_field(name="Pressure", value=f"{current_pressure} hPa")
         embed_current.add_field(name="Wind Speed", value=f"{current_wind_speed} m/s")
         embed_current.add_field(name="Wind Direction", value=f"{current_wind_direction} degrees")
-
+        embed_current.set_footer(text=f"Powered by OpenWeatherMap")
 
         await interaction.followup.send(embed=embed_current, ephemeral=True)
 
