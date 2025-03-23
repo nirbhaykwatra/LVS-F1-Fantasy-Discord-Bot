@@ -23,7 +23,7 @@ class FantasyDebug(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def show_excluded_drivers(self, interaction: discord.Interaction):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /debug show-excluded-drivers")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /debug show-excluded-drivers")
         excluded_drivers = dt.exclude_drivers
         logger.info(f'Excluded drivers: {excluded_drivers}')
 
@@ -49,7 +49,7 @@ class FantasyDebug(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def remove_season_events(self, interaction: discord.Interaction):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /debug remove-season-events")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /debug remove-season-events")
         await interaction.response.defer(ephemeral=True)
 
         guild = self.bot.get_guild(settings.GUILD_ID)
@@ -70,7 +70,7 @@ class FantasyDebug(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def remove_player_database(self, interaction: discord.Interaction, user: discord.User):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /debug remove-player-database with parameters: user: {user.name}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /debug remove-player-database with parameters: user: {user.name}")
         sql.remove_player_table(user.id)
         await interaction.response.send_message(f"Successfully removed {user.name}'s Player Database.", ephemeral=True)
 
@@ -79,7 +79,7 @@ class FantasyDebug(commands.Cog):
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def set_current_round(self, interaction: discord.Interaction, grand_prix: Choice[str]):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /debug set-current-round with parameters: grand_prix: {grand_prix.name}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /debug set-current-round with parameters: grand_prix: {grand_prix.name}")
         settings.F1_ROUND = grand_prix.value
         settings.settings['round'] = grand_prix.value
         await interaction.response.send_message(f'Current round set to round {settings.F1_ROUND}', ephemeral=True)
@@ -88,14 +88,14 @@ class FantasyDebug(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def show_current_round(self, interaction: discord.Interaction):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /debug show-current-round")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /debug show-current-round")
         await interaction.response.send_message(f'Current round is round {settings.F1_ROUND}', ephemeral=True)
         
     @debug_group.command(name='increment-round', description='Increment the current round number.')
     @app_commands.checks.has_role('Administrator')
     async def increment_round(self, interaction: discord.Interaction, number_of_rounds: int):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /debug increment-round with parameters: number_of_rounds: {number_of_rounds}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /debug increment-round with parameters: number_of_rounds: {number_of_rounds}")
         initial_round = settings.F1_ROUND
         settings.F1_ROUND += number_of_rounds
         settings.settings['round'] = int(settings.settings['round']) + number_of_rounds
@@ -105,7 +105,7 @@ class FantasyDebug(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def decrement_round(self, interaction: discord.Interaction, number_of_rounds: int):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /debug decrement-round with parameters: number_of_rounds: {number_of_rounds}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /debug decrement-round with parameters: number_of_rounds: {number_of_rounds}")
         initial_round = settings.F1_ROUND
         settings.F1_ROUND -= number_of_rounds
         settings.settings['round'] = int(settings.settings['round']) - number_of_rounds
@@ -116,7 +116,7 @@ class FantasyDebug(commands.Cog):
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def check_deadline(self, interaction: discord.Interaction, grand_prix: Choice[str]):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /debug check-deadline with parameters: grand_prix: {grand_prix.name}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /debug check-deadline with parameters: grand_prix: {grand_prix.name}")
         draft_timestamp = sql.timings.loc[sql.timings['round'] == int(grand_prix.value), 'deadline'].item()
         reset_timestamp = sql.timings.loc[sql.timings['round'] == int(grand_prix.value), 'reset'].item()
         counterpick_timestamp = sql.timings.loc[sql.timings['round'] == int(grand_prix.value), 'counterpick_deadline'].item()
@@ -135,8 +135,6 @@ class FantasyDebug(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def reset_round_points(self, interaction: discord.Interaction, grand_prix: Choice[str], user: discord.User = None):
-        logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /debug reset-round-points with parameters: user: {user.name}, grand_prix: {grand_prix.name}")
         if user is None:
             for player in sql.results.userid:
                 sql.results.loc[sql.results.userid == player, f'round{grand_prix.value}'] = 0
@@ -144,7 +142,9 @@ class FantasyDebug(commands.Cog):
         else:
             sql.results.loc[sql.results['userid'] == user.id, f'round{grand_prix.value}'] = 0
             sql.results.loc[sql.results['userid'] == user.id, f'round{grand_prix.value}breakdown'] = None
-            
+
+        logger.info(
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /debug reset-round-points with parameters: user: {user.name}, grand_prix: {grand_prix.name}")
         sql.write_to_fantasy_database('results', sql.results)
         sql.results = sql.import_results_table()
         sql.update_all_player_points()
@@ -157,7 +157,7 @@ class FantasyDebug(commands.Cog):
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def clear_counter_pick(self, interaction: discord.Interaction, picking_user: discord.User, grand_prix: Choice[str]):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /debug clear-counter-pick with parameters: picking_user: {picking_user.name}, grand_prix: {grand_prix.name}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /debug clear-counter-pick with parameters: picking_user: {picking_user.name}, grand_prix: {grand_prix.name}")
         counterpick = sql.counterpick.loc[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['pickinguser'] == picking_user.id)]
 
         sql.counterpick = sql.counterpick.drop(counterpick.index.values)
@@ -172,7 +172,7 @@ class FantasyDebug(commands.Cog):
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def points_breakdown(self, interaction: discord.Interaction, grand_prix: Choice[str], user:discord.User):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /debug points-breakdown with parameters: user: {user.name}, grand_prix: {grand_prix.name}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /debug points-breakdown with parameters: user: {user.name}, grand_prix: {grand_prix.name}")
         await interaction.response.defer(ephemeral=True)
 
         event_schedule = f1.event_schedule

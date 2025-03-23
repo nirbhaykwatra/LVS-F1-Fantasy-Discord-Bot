@@ -43,14 +43,14 @@ async def setup_hook():
     for command in settings.CMDS_DIR.glob("*.py"):
         if command.name != '__init__.py':
             await bot.load_extension(f'commands.{command.name[:-3]}')
-            logger.info(f"[COGS]    Loaded '{command.name[:-3]}' cog.")
+            logger.info(f"COGS    Loaded '{command.name[:-3]}' cog.")
     #endregion
 
 
 @bot.event
 async def on_ready():
-    logger.info(f'{bot.user.name} connected to {bot.get_guild(guild.id)} (guild ID: {guild.id})')
-    logger.info(f'Fantasy Manager is ready.')
+    logger.info(f'{bot.user.name} connected to \x1b[91m{bot.get_guild(guild.id)} (guild ID: {guild.id})')
+    logger.info(f'\x1b[92mFantasy Manager is ready.')
 
 
 @bot.event

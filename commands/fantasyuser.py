@@ -23,7 +23,7 @@ class FantasyUser(commands.Cog):
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     @app_commands.choices(timezone=dt.timezone_choice_list())
     async def register(self, interaction: discord.Interaction,  timezone: dt.Choice[str], team_name: str, team_motto: str = "The one and only!"):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /register with parameters: timezone: {timezone}, team_name: {team_name}, team_motto: {team_motto}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /register with parameters: timezone: {timezone}, team_name: {team_name}, team_motto: {team_motto}")
         await interaction.response.defer(ephemeral=True)
         
         if interaction.user.id in sql.players.userid.to_list():
@@ -109,7 +109,6 @@ class FantasyUser(commands.Cog):
                     bogey_driver: Choice[str],
                     team: Choice[str],
                     grand_prix: Choice[str] | None):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /draft with parameters: {driver1}, {driver2}, {driver3}, {bogey_driver}, {team} for the {grand_prix.name}")
         await interaction.response.defer(ephemeral=True)
 
         if interaction.user.id not in sql.players.userid.to_list():
@@ -122,7 +121,7 @@ class FantasyUser(commands.Cog):
 
             await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
             return
-        
+
         if grand_prix is None:
             grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
                                 value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
@@ -132,6 +131,7 @@ class FantasyUser(commands.Cog):
                                 value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == int(grand_prix.value), "RoundNumber"].item()
                                 )
 
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /draft with parameters: {driver1}, {driver2}, {driver3}, {bogey_driver}, {team} for the {grand_prix.name}")
         driver_info = f1.get_driver_info(settings.F1_SEASON)
         
         # Deadline check
@@ -312,7 +312,6 @@ class FantasyUser(commands.Cog):
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def team(self, interaction: discord.Interaction, grand_prix: Choice[str] | None, user: discord.User = None, hidden: bool = True, show_all: bool = False):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /team with parameters: grand_prix: {grand_prix.name}, user: {user.name}, hidden: {hidden}, show_all: {show_all}")
         await interaction.response.defer(ephemeral=hidden)
 
         if grand_prix is None:
@@ -321,6 +320,7 @@ class FantasyUser(commands.Cog):
                                 )
         if user is None:
             user = interaction.user
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /team with parameters: grand_prix: {grand_prix.name}, user: {user.name}, hidden: {hidden}, show_all: {show_all}")
 
         if interaction.user.id not in sql.players.userid.to_list():
 
@@ -582,11 +582,11 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='exhausted', description='View your team exhaustions.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def exhausted(self, interaction: discord.Interaction, user: discord.User = None):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /exhausted with parameters: user: {user.name}")
         await interaction.response.defer(ephemeral=True)
 
         if user is None:
             user = interaction.user
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /exhausted with parameters: user: {user.name}")
 
         if interaction.user.id not in sql.players.userid.to_list():
 
@@ -624,7 +624,7 @@ class FantasyUser(commands.Cog):
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def check_deadline(self, interaction: discord.Interaction, grand_prix: Choice[str]):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /check-deadline with parameters: grand_prix: {grand_prix.name}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /check-deadline with parameters: grand_prix: {grand_prix.name}")
         draft_timestamp = sql.timings.loc[sql.timings['round'] == int(grand_prix.value), 'deadline'].item()
         counterpick_timestamp = sql.timings.loc[sql.timings['round'] == int(grand_prix.value), 'counterpick_deadline'].item()
 
@@ -641,7 +641,6 @@ class FantasyUser(commands.Cog):
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list(),
                           driver=dt.drivers_choice_list())
     async def counter_pick(self, interaction: discord.Interaction, user: discord.User, driver: Choice[str], grand_prix: Choice[str] | None):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /counter-pick with parameters: user: {user.name}, driver: {driver.name}, grand_prix: {grand_prix.name}")
         if interaction.user.id not in sql.players.userid.to_list():
 
             unregistered_embed = discord.Embed(
@@ -652,13 +651,14 @@ class FantasyUser(commands.Cog):
 
             await interaction.response.send_message(embed=unregistered_embed, ephemeral=True)
             return
-        
+
 
         if grand_prix is None:
             grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
                                 value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
                                 )
-        
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /counter-pick with parameters: user: {user.name}, driver: {driver.name}, grand_prix: {grand_prix.name}")
+
         # Deadline check
         bHasCounterpickDeadlinePassed = timing.has_deadline_passed(int(grand_prix.value), sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item(), 'counterpick_deadline')
         
@@ -782,7 +782,6 @@ class FantasyUser(commands.Cog):
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list()
                           )
     async def revoke_counter_pick(self, interaction: discord.Interaction, grand_prix: Choice[str] | None):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /revoke-counter-pick with parameters: grand_prix: {grand_prix.name}")
         if interaction.user.id not in sql.players.userid.to_list():
 
             unregistered_embed = discord.Embed(
@@ -799,6 +798,7 @@ class FantasyUser(commands.Cog):
                                 value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
                                 )
 
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /revoke-counter-pick with parameters: grand_prix: {grand_prix.name}")
         # Deadline check
         bHasCounterpickDeadlinePassed = timing.has_deadline_passed(int(grand_prix.value), sql.players.loc[sql.players['userid'] == interaction.user.id, 'timezone'].item(), 'counterpick_deadline')
 
@@ -832,7 +832,7 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='check-counter-pick', description=f"Check your counter pick status.")
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def check_counter_pick(self, interaction: discord.Interaction):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /check-counter-pick")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /check-counter-pick")
         await interaction.response.defer(ephemeral=True)
         
         if interaction.user.id not in sql.players.userid.to_list():
@@ -888,7 +888,7 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='player-profile', description="View a player's profile.")
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def player_profile(self, interaction: discord.Interaction, user: discord.User):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /player-profile with parameters: user")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /player-profile with parameters: user")
         if user == interaction.user and interaction.user.id not in sql.players.userid.to_list():
 
             unregistered_embed = discord.Embed(
@@ -934,16 +934,15 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='leaderboard', description='View the leaderboard.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def leaderboard(self, interaction: discord.Interaction):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /leaderboard")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /leaderboard")
         await interaction.response.send_message(f'leaderboard command triggered', ephemeral=True)
 
     @app_commands.command(name='points-breakdown', description='View points breakdown for given grand prix.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def points_breakdown(self, interaction: discord.Interaction, grand_prix: Choice[str], user: discord.User = None):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /points-breakdown with parameters: grand_prix: {grand_prix}, user: {user.name}")
         await interaction.response.defer(ephemeral=True)
-        
+
         event_schedule = f1.event_schedule
 
         if interaction.user.id not in sql.players.userid.to_list():
@@ -960,7 +959,8 @@ class FantasyUser(commands.Cog):
 
         if user == None:
             user = interaction.user
-        
+
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /points-breakdown with parameters: grand_prix: {grand_prix}, user: {user.name}")
         embed_points = discord.Embed(
             title=f"Points Breakdown for the {grand_prix.name}",
             colour=settings.EMBED_COLOR
@@ -1002,7 +1002,7 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='points-table', description='View the points table.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def points_table(self, interaction: discord.Interaction, hidden: bool = True):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /points-table with parameters: hidden: {hidden}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /points-table with parameters: hidden: {hidden}")
         results_prep = sql.results.drop(axis=1, columns=['userid',
                                                          'round1breakdown', 'round2breakdown', 'round3breakdown',
                                                          'round4breakdown', 'round5breakdown', 'round6breakdown',
@@ -1046,7 +1046,7 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='edit-motto', description='Edit your team motto.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def edit_team_motto(self, interaction: discord.Interaction, motto: str):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /edit-team-motto with parameters: motto: {motto}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /edit-team-motto with parameters: motto: {motto}")
         if interaction.user.id not in sql.players.userid.to_list():
 
             unregistered_embed = discord.Embed(
@@ -1070,7 +1070,7 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='edit-team-name', description='Edit your team name.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def edit_team_name(self, interaction: discord.Interaction, team_name: str):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /edit-team-name with parameters: team_name: {team_name}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /edit-team-name with parameters: team_name: {team_name}")
         if interaction.user.id not in sql.players.userid.to_list():
 
             unregistered_embed = discord.Embed(
@@ -1095,7 +1095,7 @@ class FantasyUser(commands.Cog):
     @app_commands.command(name='edit-timezone', description='Edit your timezone. Make sure to enter a valid pytz timezone.')
     @app_commands.guilds(discord.Object(id=settings.GUILD_ID))
     async def edit_timezone(self, interaction: discord.Interaction, timezone: str):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /edit-timezone with parameters: timezone: {timezone}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /edit-timezone with parameters: timezone: {timezone}")
         await interaction.response.defer(ephemeral=True)
 
         if interaction.user.id not in sql.players.userid.to_list():

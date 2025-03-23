@@ -159,7 +159,7 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def update_player_points(self, interaction: discord.Interaction, grand_prix: Choice[str], quali_results: str, race_results: str, sprint_results: str = "none", sprint_quali_results: str = "none", hidden: bool = True):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /admin update-player-points with Parameters:grand_prix: {grand_prix.name} quali_results: {quali_results} race_results: {race_results} sprint_results: {sprint_results} sprint_quali_results: {sprint_quali_results}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin update-player-points with Parameters:grand_prix: {grand_prix.name} quali_results: {quali_results} race_results: {race_results} sprint_results: {sprint_results} sprint_quali_results: {sprint_quali_results}")
 
         await interaction.response.defer(ephemeral=hidden)
 
@@ -365,7 +365,7 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def update_driver_stats(self, interaction: discord.Interaction, grand_prix: Choice[str]):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /admin update-driver-stats with parameters: grand_prix: {grand_prix.name}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin update-driver-stats with parameters: grand_prix: {grand_prix.name}")
         #TODO: Add except to handle retrieval of driver standings if driver standings are not yet populated.
         # For example, if the season has not begun but the year has incremented; if the driver standings for 2025 are not available, retrieve for 2024
         try:
@@ -385,7 +385,7 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def list_players(self, interaction: discord.Interaction):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin list-players")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin list-players")
         embed = discord.Embed(title="Registered Players")
 
         if len(sql.players.userid) == 0:
@@ -402,7 +402,7 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def remove_player(self, interaction: discord.Interaction, player: discord.User):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin remove-player with parameters: player: {player.name}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin remove-player with parameters: player: {player.name}")
         sql.players = sql.players[sql.players.userid != player.id]
         sql.results = sql.results[sql.results.userid != player.id]
         sql.write_to_fantasy_database('players', sql.players)
@@ -415,7 +415,7 @@ class FantasyAdmin(commands.Cog):
     @app_commands.choices(operation=[Choice(name='Exclude Driver', value="add"), Choice(name='Include Driver', value="remove")])
     async def modify_driver_choice(self, interaction: discord.Interaction, operation: Choice[str], driver_code: str ):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin modify-driver-choice with parameters: operation: {operation.name}, driver_code: {driver_code}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin modify-driver-choice with parameters: operation: {operation.name}, driver_code: {driver_code}")
         excluded_drivers = dt.exclude_drivers
         logger.info(f'Excluded drivers: {excluded_drivers}')
 
@@ -456,8 +456,6 @@ class FantasyAdmin(commands.Cog):
                     bogey_driver: Choice[str],
                     team: Choice[str],
                     grand_prix: Choice[str]):
-        logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin draft for {user.name} with parameters: {driver1}, {driver2}, {driver3}, {bogey_driver}, {team} for the {grand_prix.name}")
         await interaction.response.defer(ephemeral=True)
 
         if user.id not in sql.players.userid.to_list():
@@ -482,6 +480,8 @@ class FantasyAdmin(commands.Cog):
                                     f1.event_schedule['RoundNumber'] == int(grand_prix.value), "RoundNumber"].item()
                                 )
 
+        logger.info(
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin draft for {user.name} with parameters: {driver1}, {driver2}, {driver3}, {bogey_driver}, {team} for the {grand_prix.name}")
         driver_info = f1.get_driver_info(settings.F1_SEASON)
 
         # region Draft Checks
@@ -669,8 +669,6 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def team(self, interaction: discord.Interaction, grand_prix: Choice[str], user: discord.User, hidden: bool = True):
-        logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin team with parameters: grand_prix: {grand_prix.name}, user: {user.name}, hidden: {hidden}")
         await interaction.response.defer(ephemeral=hidden)
 
         if grand_prix is None:
@@ -679,6 +677,8 @@ class FantasyAdmin(commands.Cog):
                                 )
         if user is None:
             user = interaction.user
+        logger.info(
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin team with parameters: grand_prix: {grand_prix.name}, user: {user.name}, hidden: {hidden}")
 
         if interaction.user.id not in sql.players.userid.to_list():
 
@@ -809,7 +809,7 @@ class FantasyAdmin(commands.Cog):
         grand_prix=dt.grand_prix_choice_list())
     async def clear_team(self, interaction: discord.Interaction, user: discord.User, grand_prix: Choice[str]):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin clear-team with parameters: user: {user.name}, grand_prix: {grand_prix.name}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin clear-team with parameters: user: {user.name}, grand_prix: {grand_prix.name}")
 
         await interaction.response.defer(ephemeral=True)
 
@@ -828,7 +828,7 @@ class FantasyAdmin(commands.Cog):
     )
     async def set_draft_deadline(self, interaction: discord.Interaction, grand_prix: Choice[str], datetime_utc_naive: str, column: str):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin set-draft-deadline with parameters: grand_prix: {grand_prix.name}, datetime_utc_naive: {datetime_utc_naive}, column: {column}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin set-draft-deadline with parameters: grand_prix: {grand_prix.name}, datetime_utc_naive: {datetime_utc_naive}, column: {column}")
         sql.modify_timings(int(grand_prix.value), datetime_utc_naive, column)
         await interaction.response.send_message(f"New draft deadline set for {grand_prix.name}", ephemeral=True)
 
@@ -840,7 +840,7 @@ class FantasyAdmin(commands.Cog):
     )    
     async def counter_pick(self, interaction: discord.Interaction, picking_user: discord.User, user: discord.User, driver: Choice[str], grand_prix: Choice[str]):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin counter-pick with parameters: picking_user: {picking_user.name}, target_user: {user.name}, driver: {driver.name}, grand_prix: {grand_prix.name}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin counter-pick with parameters: picking_user: {picking_user.name}, target_user: {user.name}, driver: {driver.name}, grand_prix: {grand_prix.name}")
         if picking_user.id not in sql.counterpick[sql.counterpick['round'] == int(grand_prix.value)].pickinguser.to_list():
             # If user's id exists in the counterpick table more times than the counterpick limit, interrupt counter-picking
             number_of_counterpicks = len(sql.counterpick[sql.counterpick['pickinguser'] == picking_user.id].pickinguser.array)
@@ -957,7 +957,7 @@ class FantasyAdmin(commands.Cog):
     )
     async def view_counter_picks(self, interaction: discord.Interaction, grand_prix: Choice[str]):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin view-counter-picks with parameters: grand_prix: {grand_prix.name}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin view-counter-picks with parameters: grand_prix: {grand_prix.name}")
         current_round_counterpick = sql.counterpick[sql.counterpick['round'] == int(grand_prix.value)]
         rounds = current_round_counterpick['round'].array
         pickingusers = current_round_counterpick.pickinguser.array
@@ -991,7 +991,7 @@ class FantasyAdmin(commands.Cog):
             colour=settings.EMBED_COLOR
         )
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin show-undrafted with parameters: grand_prix: {grand_prix.name}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin show-undrafted with parameters: grand_prix: {grand_prix.name}")
         for index, player in enumerate(sql.players.userid):
             player_table = sql.retrieve_player_table(int(player))
             user = await self.bot.fetch_user(int(player))
@@ -1004,7 +1004,7 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def shutdown_command(self, interaction: discord.Interaction, shut_down: bool = False):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin restart with parameters: shut_down: {shut_down}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin restart with parameters: shut_down: {shut_down}")
         if not shut_down:
             await interaction.response.send_message(f"Restarting Fantasy Manager...", ephemeral=True)
             settings.exit_handler()
@@ -1018,7 +1018,7 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def send_reminder(self, interaction: discord.Interaction, user: discord.User, title: str, message: str):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin send-dm with parameters: user: {user.name}, title: {title}, message: {message}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin send-dm with parameters: user: {user.name}, title: {title}, message: {message}")
         embed = discord.Embed(title=f'{title}',
                               description=f"{message}",
                               colour=settings.EMBED_COLOR)
@@ -1031,7 +1031,7 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def send_reminder(self, interaction: discord.Interaction, user: discord.User):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin send-reminder with parameters: user: {user.name}")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin send-reminder with parameters: user: {user.name}")
         embed = discord.Embed(title='Draft Reminder',
                               description=f"You have not yet drafted your team for the "
                                           f"**{f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, 'EventName'].item()}**! "
@@ -1053,7 +1053,7 @@ class FantasyAdmin(commands.Cog):
     @app_commands.checks.has_role('Administrator')
     async def remind_undrafted(self, interaction: discord.Interaction):
         logger.info(
-            f"[SLASH-COMMAND] {interaction.user.name} used /admin remind-undrafted")
+            f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /admin remind-undrafted")
         embed = discord.Embed(title='Draft Reminder',
                               description=f"You have not yet drafted your team for the "
                                           f"**{f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, 'EventName'].item()}**! "

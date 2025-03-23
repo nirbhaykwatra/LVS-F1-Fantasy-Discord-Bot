@@ -13,7 +13,7 @@ from datetime import datetime
 
 logger = settings.create_logger('fantasy-fastf1')
 
-#region Cog
+#region Formula 1 Cog
 class Formula1(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -25,7 +25,7 @@ class Formula1(commands.Cog):
     @stats_group.command(name='driver', description='Get information about Formula 1 drivers.')
     @app_commands.choices(driver=dt.drivers_choice_list(info=True))
     async def get_driver_data(self, interaction: discord.Interaction, driver: dt.Choice[str]):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /f1 driver with parameters: driver: {driver}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /f1 driver with parameters: driver: {driver}")
         driver_info = f1.get_driver_info(season='current')
         
         drivers_standings = f1.ergast.get_driver_standings(season='current')
@@ -98,7 +98,7 @@ class Formula1(commands.Cog):
     @stats_group.command(name='manufacturer', description='Get information about Formula 1 constructors.')
     @app_commands.choices(team=dt.constructor_choice_list())
     async def get_constructor_data(self, interaction: discord.Interaction, team: Choice[str]):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /f1 manufacturer with parameters: team: {team}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /f1 manufacturer with parameters: team: {team}")
         await interaction.response.defer(ephemeral=True)
         constructor_standings = f1.ergast.get_constructor_standings(season='current').content
         
@@ -137,7 +137,7 @@ class Formula1(commands.Cog):
         #TODO: Use OpenWeatherMap API to get latest weather data for specified Grand Prix.
         # If possible, get ambient temperature, humidity, weather condition (clear, overcast, cloudy, rain, snow, etc.)
         # Get track temperature, average
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /f1 grand-prix with parameters: grand_prix: {grand_prix.name}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /f1 grand-prix with parameters: grand_prix: {grand_prix.name}")
         await interaction.response.defer(ephemeral=True)
         
         event_schedule = f1.event_schedule
@@ -210,7 +210,7 @@ class Formula1(commands.Cog):
     @stats_group.command(name='weather', description='Get weather information about Formula 1 Grand Prix events.')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
     async def weather(self, interaction: discord.Interaction, grand_prix: dt.Choice[str], forecast: bool = False):
-        logger.info(f"[SLASH-COMMAND] {interaction.user.name} used /f1 weather with parameters: grand_prix: {grand_prix.name}, forecast: {forecast}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /f1 weather with parameters: grand_prix: {grand_prix.name}, forecast: {forecast}")
         await interaction.response.defer(ephemeral=True)
 
         event_schedule = f1.event_schedule
