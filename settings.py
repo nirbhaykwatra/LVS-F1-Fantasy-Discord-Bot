@@ -6,7 +6,7 @@ import discord
 from dotenv import load_dotenv
 import atexit
 
-logFormat = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}',
+logFormat = logging.Formatter('{asctime} {name}: {levelname:<8} {message}',
                               datefmt='%Y-%m-%d %H:%M:%S',
                               style='{')
 
