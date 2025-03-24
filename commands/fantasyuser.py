@@ -681,7 +681,7 @@ class FantasyUser(commands.Cog):
                 return
 
             # If a driver has already been counter picked for a given player, interrupt counter-picking
-            if driver.value in sql.counterpick[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['targetuser'] == user.id)].targetdriver:
+            if driver.value in sql.counterpick[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['targetuser'] == user.id)].targetdriver.array:
                 driver_counterpick_embed = discord.Embed(
                     title=f"Counter Pick Invalid!",
                     description=f"**{driver.name}** is already counter-picked against **{user.name}** for the **{grand_prix.name}**! Try counter-picking another driver!",
@@ -917,7 +917,14 @@ class FantasyUser(commands.Cog):
                             value=f"Season Points",
                             inline=True)
 
-        user_row = sql.results.loc[sql.results['userid'] == user.id].drop(labels=['userid','username', 'teamname'], axis=1).squeeze()
+        user_row = sql.results.loc[sql.results['userid'] == user.id].drop(labels=['userid','username', 'teamname','round1breakdown', 'round2breakdown', 'round3breakdown',
+                                                         'round4breakdown', 'round5breakdown', 'round6breakdown',
+                                                         'round7breakdown', 'round8breakdown', 'round9breakdown',
+                                                         'round10breakdown', 'round11breakdown', 'round12breakdown',
+                                                         'round13breakdown', 'round14breakdown', 'round15breakdown',
+                                                         'round16breakdown', 'round17breakdown', 'round18breakdown',
+                                                         'round19breakdown', 'round20breakdown', 'round21breakdown',
+                                                         'round22breakdown', 'round23breakdown', 'round24breakdown'], axis=1).squeeze()
         if user_row.empty:
             embed.add_field(name=f"0",
                             value=f"Most Points Scored",
@@ -960,41 +967,71 @@ class FantasyUser(commands.Cog):
         if user == None:
             user = interaction.user
 
-        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /points-breakdown with parameters: grand_prix: {grand_prix}, user: {user.name}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /points-breakdown with parameters: grand_prix: {grand_prix.name}, user: {user.name}")
         embed_points = discord.Embed(
             title=f"Points Breakdown for the {grand_prix.name}",
             colour=settings.EMBED_COLOR
         )
-        
+
+
         embed_points.set_author(name=f"{user.name}")
-        
+
         embed_points.add_field(name=f"{sql.results.loc[sql.results['userid'] == user.id, f'round{grand_prix.value}'].item()} points", value=f"Total Points")
         breakdown_json = sql.results.loc[sql.results['userid'] == user.id, f'round{grand_prix.value}breakdown'].item()
+
+        if breakdown_json is None:
+            embed_no_points = discord.Embed(
+                title=f"No breakdown for the {grand_prix.name}",
+                description=f"Points have not been updated for the {grand_prix.name} yet. Come back afterwards!",
+                colour=settings.EMBED_COLOR
+            )
+            await interaction.followup.send(embed=embed_no_points, ephemeral=True)
+            return
+
         breakdown = json.loads(breakdown_json)
-        
-        embed_points.add_field(name=f"Race", value="------------------------", inline=False)
-        embed_points.add_field(value=f"{breakdown['driver1']} points", name=f"Driver 1", inline=True)
-        embed_points.add_field(value=f"{breakdown['driver2']} points", name=f"Driver 2", inline=True)
-        embed_points.add_field(value=f"{breakdown['driver3']} points", name=f"Driver 3", inline=True)
-        embed_points.add_field(value=f"{breakdown['bogey_driver']} points", name=f"Bogey Driver", inline=True)
-        embed_points.add_field(value=f"{breakdown['team']} points", name=f"Constructor", inline=True)
+        driver_info = f1.get_driver_info(season='current')
+        player_table = sql.retrieve_player_table(user.id)
+
+        tla_driver1 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver1'].item()
+        tla_driver2 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver2'].item()
+        tla_driver3 = player_table.loc[player_table['round'] == int(grand_prix.value), 'driver3'].item()
+        tla_wildcard = player_table.loc[player_table['round'] == int(grand_prix.value), 'wildcard'].item()
+        short_team = player_table.loc[player_table['round'] == int(grand_prix.value), 'constructor'].item()
+
+        em_driver1 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'givenName'].item()} "
+                      f"{driver_info.loc[driver_info['driverCode'] == tla_driver1, 'familyName'].item()}")
+        em_driver2 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'givenName'].item()} "
+                      f"{driver_info.loc[driver_info['driverCode'] == tla_driver2, 'familyName'].item()}")
+        em_driver3 = (f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'givenName'].item()} "
+                      f"{driver_info.loc[driver_info['driverCode'] == tla_driver3, 'familyName'].item()}")
+        em_wildcard = (f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'givenName'].item()} "
+                       f"{driver_info.loc[driver_info['driverCode'] == tla_wildcard, 'familyName'].item()}")
+        em_team = dt.team_names_full[short_team]
+
+
+        embed_points.add_field(name=f"Race", value="", inline=False)
+        embed_points.add_field(value=f"{breakdown['driver1']} points", name=f"{em_driver1}", inline=True)
+        embed_points.add_field(value=f"{breakdown['driver2']} points", name=f"{em_driver2}", inline=True)
+        embed_points.add_field(value=f"{breakdown['driver3']} points", name=f"{em_driver3}", inline=True)
+        embed_points.add_field(value=f"{breakdown['bogey_driver']} points", name=f"{em_wildcard}", inline=True)
+        embed_points.add_field(value=f"{breakdown['team']} points", name=f"{em_team}", inline=True)
                 
-        embed_points.add_field(name="Qualifying", value="------------------------", inline=False)
-        embed_points.add_field(value=f"{breakdown['driver1quali']} points", name=f"Driver 1", inline=True)
-        embed_points.add_field(value=f"{breakdown['driver2quali']} points", name=f"Driver 2", inline=True)
-        embed_points.add_field(value=f"{breakdown['driver3quali']} points", name=f"Driver 3", inline=True)
+        embed_points.add_field(name="Qualifying", value="", inline=False)
+        embed_points.add_field(value=f"{breakdown['driver1quali']} points", name=f"{em_driver1}", inline=True)
+        embed_points.add_field(value=f"{breakdown['driver2quali']} points", name=f"{em_driver2}", inline=True)
+        embed_points.add_field(value=f"{breakdown['driver3quali']} points", name=f"{em_driver3}", inline=True)
         
         if event_schedule.loc[event_schedule['RoundNumber'] == int(grand_prix.value), "EventFormat"].item() == 'sprint_qualifying':
-            embed_points.add_field(name="Sprint Race", value="------------------------", inline=False)
-            embed_points.add_field(value=f"{breakdown['driver1sprint']} points", name=f"Driver 1", inline=True)
-            embed_points.add_field(value=f"{breakdown['driver2sprint']} points", name=f"Driver 2", inline=True)
-            embed_points.add_field(value=f"{breakdown['driver3sprint']} points", name=f"Driver 3", inline=True)
-            embed_points.add_field(value=f"{breakdown['bogey_driver_sprint']} points", name=f"Bogey Driver", inline=True)
+            embed_points.add_field(name="Sprint Race", value="", inline=False)
+            embed_points.add_field(value=f"{breakdown['driver1sprint']} points", name=f"{em_driver1}", inline=True)
+            embed_points.add_field(value=f"{breakdown['driver2sprint']} points", name=f"{em_driver2}", inline=True)
+            embed_points.add_field(value=f"{breakdown['driver3sprint']} points", name=f"{em_driver3}", inline=True)
+            embed_points.add_field(value=f"{breakdown['bogey_driver_sprint']} points", name=f"{em_wildcard}", inline=True)
 
-            embed_points.add_field(name="Sprint Qualifying", value="------------------------", inline=False)
-            embed_points.add_field(value=f"{breakdown['driver1sprintquali']} points", name=f"Driver 1", inline=True)
-            embed_points.add_field(value=f"{breakdown['driver2sprintquali']} points", name=f"Driver 2", inline=True)
-            embed_points.add_field(value=f"{breakdown['driver3sprintquali']} points", name=f"Driver 3", inline=True)
+            embed_points.add_field(name="Sprint Qualifying", value="", inline=False)
+            embed_points.add_field(value=f"{breakdown['driver1sprintquali']} points", name=f"{em_driver1}", inline=True)
+            embed_points.add_field(value=f"{breakdown['driver2sprintquali']} points", name=f"{em_driver2}", inline=True)
+            embed_points.add_field(value=f"{breakdown['driver3sprintquali']} points", name=f"{em_driver3}", inline=True)
             
         await interaction.followup.send(embed=embed_points, ephemeral=True)
 
