@@ -240,16 +240,15 @@ def update_player_points(player: int):
         total_points += results.loc[results['userid'] == player, f'round{round_number}'].item()
         
     players.loc[players['userid'] == player, 'points'] = total_points
+    results.loc[results['userid'] == player, 'total'] = total_points
     write_to_fantasy_database('players', players, if_exists='replace')
+    write_to_fantasy_database('results', results, if_exists='replace')
     logger.info(f"Updated {players.loc[players['userid'] == player, 'username'].item()}'s season points! ({total_points} points)")
 
 def update_all_player_points():
     for player in players.userid:
-        update_player_points(player)
+        update_player_points(int(player))
 #endregion
-
-
-
 if __name__ == '__main__':
 
     pass
