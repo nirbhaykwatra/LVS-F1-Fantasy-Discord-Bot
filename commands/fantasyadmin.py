@@ -230,7 +230,7 @@ class FantasyAdmin(commands.Cog):
                     if driver in current_round_counterpicks:
                         top_three_drivers[top_three_drivers.index(driver)] = 'TLA'
                         
-            logger.info(f"{user.name}'s team for the {grand_prix.value}: {top_three_drivers}")
+            logger.info(f"{user.name}'s team for the {grand_prix.name}: {top_three_drivers}")
             
             bogey_driver = player_team['bogey_driver']
             team = player_team['team']
@@ -345,20 +345,19 @@ class FantasyAdmin(commands.Cog):
             points_breakdown_json = json.dumps(points_breakdown)
             results.loc[results['userid'] == player, f'round{grand_prix.value}'] = total_points
             results.loc[results['userid'] == player, f'round{grand_prix.value}breakdown'] = [points_breakdown_json]
-
-            for player in sql.players.userid:
-                sql.update_player_points(int(player))
             sql.write_to_fantasy_database('results', results)
-            sql.results = sql.import_results_table()
-            sql.players = sql.import_players_table()
-            settings.F1_ROUND += 1
+
+        sql.update_all_player_points()
+        sql.results = sql.import_results_table()
+        sql.players = sql.import_players_table()
             
         embed_points = discord.Embed(
             title=f'Points for the {grand_prix.name} have been updated!',
             description=f'To check your points breakdown, use /points-breakdown with the specified grand prix.',
             color=settings.EMBED_COLOR
-        )    
-        
+        )
+        settings.F1_ROUND += 1
+        logger.info(f"Points have been calculated. F1 round has been set to {settings.F1_ROUND}.")
         await interaction.followup.send(embed=embed_points, ephemeral=True)
 
     @admin_group.command(name='update-driver-stats', description='Update driver statistics, as of the given round.')
