@@ -154,7 +154,48 @@ class FantasyAdmin(commands.Cog):
     
         return bDraftInvalid
 
-    #@tasks.loop(seconds=5, count=5)
+    # @tasks.loop(seconds=5)
+    async def reminder(self):
+        if dt.start_reminder_loop:
+            # round_deadline = sql.timings.loc[sql.timings['round'] == settings.F1_ROUND, 'deadline'].item()
+            # logger.info(f"Round {settings.F1_ROUND} deadline: {round_deadline}")
+            #
+            # round_deadline_aware_utc = round_deadline.tz_localize('UTC')
+            #
+            # reminder_timestamps = [
+            #     round_deadline_aware_utc - pd.Timedelta(hours=12),
+            #     round_deadline_aware_utc - pd.Timedelta(hours=6),
+            #     round_deadline_aware_utc - pd.Timedelta(hours=3),
+            #     round_deadline_aware_utc - pd.Timedelta(hours=1),
+            #     round_deadline_aware_utc - pd.Timedelta(minutes=30),
+            # ]
+            # logger.info(f"Round {settings.F1_ROUND} reminder timestamps: {reminder_timestamps}")
+            #
+            # undrafted_users = []
+            #
+            # for index, player in enumerate(sql.players.userid):
+            #     player_table = sql.retrieve_player_table(int(player))
+            #     user = await self.bot.fetch_user(int(player))
+            #     if int(settings.F1_ROUND) not in player_table['round'].to_list():
+            #         undrafted_users.append(user)
+            #
+            # for deadline in reminder_timestamps:
+            #     if deadline < pd.Timestamp.utcnow():
+            #         for user in undrafted_users:
+            #             embed = discord.Embed(title='Draft Reminder',
+            #                                   description=f"You have not yet drafted your team for the "
+            #                                               f"**{f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, 'EventName'].item()}**! "
+            #                                               f"Please draft your team at the earliest. You can check the drafting deadline by using the "
+            #                                               f"**/check-deadline** command.\n If you are unable to draft yourself, you can contact a League Administrator "
+            #                                               f"and let them know your team picks, they will draft for you. If you do not draft before the drafting deadline "
+            #                                               f"elapses, a team will be assigned to you at random.",
+            #                                   colour=settings.EMBED_COLOR)
+            #             await user.send(embed=embed)
+            #             reminder_timestamps.remove(deadline)
+            pass
+        else:
+            pass
+
     @admin_group.command(name='update-player-points', description='Update player points, as of the given round.')
     @app_commands.checks.has_role('Administrator')
     @app_commands.choices(grand_prix=dt.grand_prix_choice_list())
