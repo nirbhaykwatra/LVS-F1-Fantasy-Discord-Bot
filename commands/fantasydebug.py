@@ -226,5 +226,12 @@ class FantasyDebug(commands.Cog):
 
         await interaction.followup.send(embed=embed_points, ephemeral=True)
 
+    @debug_group.command(name='reminder-loop', description='Start or stop the reminders loop.')
+    @app_commands.checks.has_role('Administrator')
+    async def reminder_loop(self, interaction: discord.Interaction, start: bool = False):
+        start = dt.start_reminder_loop
+        dt.start_reminder_loop = not start
+        await interaction.response.send_message(f"Reminder loop start: {dt.start_reminder_loop}.", ephemeral=True)
+
 async def setup(bot: commands.Bot) -> None:
     await bot.add_cog(FantasyDebug(bot))
