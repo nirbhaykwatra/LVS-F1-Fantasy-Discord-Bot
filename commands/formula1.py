@@ -22,6 +22,7 @@ class Formula1(commands.Cog):
                                      description='Get information about Formula 1.',
                                      guild_ids=[settings.GUILD_ID])
 
+    # Add driver season stats like teammate battle, podiums, etc.
     @stats_group.command(name='driver', description='Get information about Formula 1 drivers.')
     @app_commands.choices(driver=dt.drivers_choice_list(info=True))
     async def get_driver_data(self, interaction: discord.Interaction, driver: dt.Choice[str]):
@@ -95,6 +96,7 @@ class Formula1(commands.Cog):
         await interaction.response.defer(ephemeral=True)
         await interaction.followup.send(f'', embeds=[driver_info_embed], ephemeral=True)
 
+    # Add season stats like standing and historical data such as championship wins
     @stats_group.command(name='manufacturer', description='Get information about Formula 1 constructors.')
     @app_commands.choices(team=dt.constructor_choice_list())
     async def get_constructor_data(self, interaction: discord.Interaction, team: Choice[str]):
