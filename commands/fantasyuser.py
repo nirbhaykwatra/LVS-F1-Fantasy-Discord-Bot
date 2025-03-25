@@ -131,7 +131,7 @@ class FantasyUser(commands.Cog):
                                 value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == int(grand_prix.value), "RoundNumber"].item()
                                 )
 
-        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /draft with parameters: {driver1}, {driver2}, {driver3}, {bogey_driver}, {team} for the {grand_prix.name}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /draft with parameters: {driver1.name}, {driver2.name}, {driver3.name}, {bogey_driver.name}, {dt.team_names_full[team]} for the {grand_prix.name}")
         driver_info = f1.get_driver_info(settings.F1_SEASON)
         
         # Deadline check
@@ -612,11 +612,17 @@ class FantasyUser(commands.Cog):
         common = pd.Series(list(set(last_team).intersection(set(second_last_team))))
         
         embed = discord.Embed(title=f"Exhausted Drivers for {user.name}", colour=settings.EMBED_COLOR)
+        driver_info = f1.get_driver_info(season='current')
+        constructor_info = f1.ergast.get_constructor_info(season='current')
         
         for element in common:
-            embed.add_field(name=f"{element}", value=f"Exhausted", inline=False)
-        
-        logger.info(f'Last team: {last_team}\n Second last team: {second_last_team}\n Common team: {common}')
+            if element in driver_info.driverCode.to_list():
+                embed.add_field(name=f"{driver_info.loc[driver_info['driverCode'] == element, 'givenName'].item()} "
+                                     f"{driver_info.loc[driver_info['driverCode'] == element, 'familyName'].item()}",
+                                value=f"Exhausted", inline=False)
+            elif element in constructor_info.constructorId.to_list():
+                embed.add_field(name=f"{dt.team_names_full[element]}",
+                                value=f"Exhausted", inline=False)
         
         await interaction.followup.send(embed=embed, ephemeral=True)
 
