@@ -72,6 +72,8 @@ weather_icon_map = {
 td = timedelta()
 all_tz = pytz.all_timezones
 
+start_reminder_loop = False
+
 excluded_driver_path = pt.Path(settings.BASE_DIR) / 'data' / 'drivers' / 'excluded_drivers.json'
 
 with open(excluded_driver_path) as file:
