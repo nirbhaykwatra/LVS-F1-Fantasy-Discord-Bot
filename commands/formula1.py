@@ -29,10 +29,10 @@ class Formula1(commands.Cog):
         logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /f1 driver with parameters: driver: {driver}")
         driver_info = f1.get_driver_info(season='current')
         
-        drivers_standings = f1.ergast.get_driver_standings(season='current')
+        drivers_standings = f1.ergast.get_driver_standings(season='current').content[0]
         
-        if not drivers_standings:
-            drivers_standings = f1.get_drivers_standings(season=settings.F1_SEASON - 1)
+        if drivers_standings.empty:
+            drivers_standings = f1.get_drivers_standings(season=settings.F1_SEASON - 1).content[0]
             
         driverId = driver_info.loc[driver_info['driverCode'] == driver.value, 'driverId'].item()
 
@@ -66,22 +66,20 @@ class Formula1(commands.Cog):
         #endregion
 
         #region Driver Statistics embed
-        '''
-        driver_stats_embed = discord.Embed(title=f"P{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "positionText"][dt.drivers_choice_list(info=True).index(driver)]} - {str(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "points"][dt.drivers_choice_list(info=True).index(driver)])} Points",
-                                          colour=discord.Colour.from_str(str(sql.drivers.loc[sql.drivers["driverCode"] == driver.value, "drivercolor"].item()))
+        driver_stats_embed = discord.Embed(title=f"P{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "positionText"].item()} - {str(drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "points"].item())} Points",
+                                          colour=discord.Colour.from_str(dt.constructors_color_map[f1.ergast.get_constructor_info(season='current', driver=driverId).constructorId.values[0]])
                                           )
 
         driver_stats_embed.set_author(name=f"{driver.name}'s Season Summary")
 
         driver_stats_embed.add_field(
-            name=f'{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "wins"][
-                      dt.drivers_choice_list(info=True).index(driver)]}',
+            name=f'{drivers_standings.loc[drivers_standings["driverCode"] == driver.value, "wins"].item()}',
             value="Wins",
             inline=True)
 
-        driver_stats_embed.add_field(name=sql.drivers.loc[sql.drivers['driverCode'] == driver.value, 'podiums'].item(),
-                                    value="Podiums",
-                                    inline=True)
+        # driver_stats_embed.add_field(name=sql.drivers.loc[sql.drivers['driverCode'] == driver.value, 'podiums'].item(),
+        #                             value="Podiums",
+        #                             inline=True)
 
         driver_stats_embed.add_field(name="Against Teammate (Race)",
                                     value=f'',
@@ -90,11 +88,10 @@ class Formula1(commands.Cog):
         driver_stats_embed.add_field(name="Against Teammate (Qualifying)",
                                     value=f'',
                                     inline=True)
-        '''
         #endregion
 
         await interaction.response.defer(ephemeral=True)
-        await interaction.followup.send(f'', embeds=[driver_info_embed], ephemeral=True)
+        await interaction.followup.send(f'', embeds=[driver_info_embed, driver_stats_embed], ephemeral=True)
 
     # Add season stats like standing and historical data such as championship wins
     @stats_group.command(name='manufacturer', description='Get information about Formula 1 constructors.')
@@ -123,11 +120,14 @@ class Formula1(commands.Cog):
                                     value=f"P{constructor_standings.loc[constructor_standings['constructorId'] == team.value, 'position'].item()}", inline=False)
         constructor_embed.add_field(name=f"Championship Points", value=f"{constructor_standings.loc[constructor_standings['constructorId'] == team.value, 'points'].item()}"
                                     , inline=True)
-        
-        constructor_embed.set_image(
-            url=f"https://media.formula1.com/image/upload/content/dam/fom-website/2018-redesign-assets/team%20logos/"
-                f"{team.value}"
-        )
+        if team.value == "red_bull":
+            constructor_embed.set_image(
+                url=f"https://media.formula1.com/d_team_car_fallback_image.png/content/dam/fom-website/teams/2025/red-bull-racing.png"
+            )
+        else:
+            constructor_embed.set_image(
+                url=f"https://media.formula1.com/d_team_car_fallback_image.png/content/dam/fom-website/teams/2025/{team.value}.png"
+            )
         
         await interaction.followup.send(embeds=[constructor_embed], ephemeral=True)
 
