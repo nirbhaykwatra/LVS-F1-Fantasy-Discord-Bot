@@ -131,7 +131,7 @@ class FantasyUser(commands.Cog):
                                 value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == int(grand_prix.value), "RoundNumber"].item()
                                 )
 
-        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /draft with parameters: {driver1.name}, {driver2.name}, {driver3.name}, {bogey_driver.name}, {dt.team_names_full[team]} for the {grand_prix.name}")
+        logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /draft with parameters: {driver1.name}, {driver2.name}, {driver3.name}, {bogey_driver.name}, {dt.team_names_full[team.value]} for the {grand_prix.name}")
         driver_info = f1.get_driver_info(settings.F1_SEASON)
         
         # Deadline check
@@ -217,10 +217,16 @@ class FantasyUser(commands.Cog):
             driverIds.append(driver_info.loc[driver_info['driverCode'] == driver, ['driverId']].squeeze())
             
         for driver in driverIds:
-            selected_constructors.append(f1.ergast.get_constructor_info(season='current', driver=driver).constructorId.squeeze())
+            #TODO: Figure out a better way to get a driver's current team instead of this.
+            if driver in dt.driver_current_teams.keys():
+                selected_constructors.append(dt.driver_current_teams[driver])
+            else:
+                selected_constructors.append(f1.ergast.get_constructor_info(season='current', driver=driver).constructorId.squeeze())
             
         embed_const = discord.Embed(title="Invalid Draft!", description="You cannot pick both drivers from multiple constructors!", colour=settings.EMBED_COLOR)
         embed_team = discord.Embed(title="Invalid Draft!", description="At least one picked driver has to represent your selected constructor!", colour=settings.EMBED_COLOR)
+
+        logger.info(f"Selected constructors: {selected_constructors}")
         
         bHasDuplicateConstructor = len(set(selected_constructors)) < 3
         

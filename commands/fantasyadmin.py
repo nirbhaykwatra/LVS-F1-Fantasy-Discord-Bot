@@ -265,17 +265,17 @@ class FantasyAdmin(commands.Cog):
             top_three_drivers = [player_team['driver1'], player_team['driver2'], player_team['driver3']]
             
             current_round_counterpicks = sql.counterpick[(sql.counterpick['round'] == int(grand_prix.value)) & (sql.counterpick['targetuser'] == player)].targetdriver.array
-            logger.info(f"Counterpicks for {user.name}: {current_round_counterpicks}")
+            logger.info(f"Counterpicks for {user.name}: {current_round_counterpicks.tolist}")
             if current_round_counterpicks != 0:
                 for index, driver in enumerate(top_three_drivers):
                     if driver in current_round_counterpicks:
                         top_three_drivers[top_three_drivers.index(driver)] = 'TLA'
                         
-            logger.info(f"{user.name}'s team for the {grand_prix.name}: {top_three_drivers}")
-            
+
             bogey_driver = player_team['bogey_driver']
             team = player_team['team']
-            
+
+            logger.info(f"{user.name}'s team for the {grand_prix.name}: {top_three_drivers} {bogey_driver} {team}")
             total_points = 0
             points_breakdown = {
                 "driver1" : 0,
@@ -297,11 +297,18 @@ class FantasyAdmin(commands.Cog):
             
             constructor_points = {}
 
+            #TODO: Find a way to solve the problem of 2 drivers being shuffled all over the grid and having more than one team and teammate.
             bogey_id = driver_info.loc[driver_info['driverCode'] == bogey_driver, ['driverId']].squeeze()
-            bogey_constructor = f1.ergast.get_constructor_info(season='current', driver=bogey_id).constructorId.squeeze()
+            if bogey_id in dt.driver_current_teams.keys():
+                bogey_constructor = dt.driver_current_teams[bogey_id]
+            else:
+                bogey_constructor = f1.ergast.get_constructor_info(season='current', driver=bogey_id).constructorId.squeeze()
             constructor_drivers = f1.ergast.get_driver_info(season='current', constructor=bogey_constructor).driverCode.to_list()
-            bogey_teammate = constructor_drivers[0] if constructor_drivers[0] != bogey_driver else constructor_drivers[1]
-            
+            if bogey_driver in dt.driver_current_teammates.keys():
+                bogey_teammate = dt.driver_current_teammates[bogey_driver]
+            else:
+                bogey_teammate = constructor_drivers[0] if constructor_drivers[0] != bogey_driver else constructor_drivers[1]
+
             # Add points for top 3 drivers and add constructor points
             
             #region Race and Quali points calculation
@@ -1102,11 +1109,15 @@ class FantasyAdmin(commands.Cog):
                                           f"and let them know your team picks, they will draft for you. If you do not draft before the drafting deadline "
                                           f"elapses, a team will be assigned to you at random.",
                               colour=settings.EMBED_COLOR)
+        undrafted = []
         for index, player in enumerate(sql.players.userid):
             player_table = sql.retrieve_player_table(int(player))
             user = await self.bot.fetch_user(int(player))
+            undrafted.append(user.name)
             if int(settings.F1_ROUND) not in player_table['round'].to_list():
                 await user.send(embed=embed)
+
+        await interaction.response.send_message(f"Sent reminders to {undrafted}.", ephemeral=True)
 
 
 
