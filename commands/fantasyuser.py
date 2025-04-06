@@ -100,7 +100,6 @@ class FantasyUser(commands.Cog):
                           driver3=dt.drivers_choice_list(),
                           bogey_driver=dt.drivers_choice_list(),
                           team=dt.constructor_choice_list(),
-                          grand_prix=dt.grand_prix_choice_list()
                           )
     async def draft(self, interaction: discord.Interaction,
                     driver1: Choice[str],
@@ -108,7 +107,7 @@ class FantasyUser(commands.Cog):
                     driver3: Choice[str],
                     bogey_driver: Choice[str],
                     team: Choice[str],
-                    grand_prix: Choice[str] | None):
+                    ):
         await interaction.response.defer(ephemeral=True)
 
         if interaction.user.id not in sql.players.userid.to_list():
@@ -122,17 +121,13 @@ class FantasyUser(commands.Cog):
             await interaction.followup.send(embed=unregistered_embed, ephemeral=True)
             return
 
-        if grand_prix is None:
-            grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
-                                value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
-                                )
-        else:
-            grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == int(grand_prix.value), "EventName"].item(),
-                                value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == int(grand_prix.value), "RoundNumber"].item()
-                                )
+
+        grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "EventName"].item(),
+                            value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND, "RoundNumber"].item()
+                            )
+
 
         logger.info(f"\x1b[96mSLASH-COMMAND\x1b[0m {interaction.user.name} used /draft with parameters: {driver1.name}, {driver2.name}, {driver3.name}, {bogey_driver.name}, {dt.team_names_full[team.value]} for the {grand_prix.name}")
-        driver_info = f1.get_driver_info(settings.F1_SEASON)
         
         # Deadline check
         embed_deadline = discord.Embed(title="The draft deadline has passed!", description="In case of extraordinary circumstances, contact the league administrator to see if they can "
@@ -225,8 +220,6 @@ class FantasyUser(commands.Cog):
             
         embed_const = discord.Embed(title="Invalid Draft!", description="You cannot pick both drivers from multiple constructors!", colour=settings.EMBED_COLOR)
         embed_team = discord.Embed(title="Invalid Draft!", description="At least one picked driver has to represent your selected constructor!", colour=settings.EMBED_COLOR)
-
-        logger.info(f"Selected constructors: {selected_constructors}")
         
         bHasDuplicateConstructor = len(set(selected_constructors)) < 3
         
@@ -936,14 +929,14 @@ class FantasyUser(commands.Cog):
                                                          'round13breakdown', 'round14breakdown', 'round15breakdown',
                                                          'round16breakdown', 'round17breakdown', 'round18breakdown',
                                                          'round19breakdown', 'round20breakdown', 'round21breakdown',
-                                                         'round22breakdown', 'round23breakdown', 'round24breakdown'], axis=1).squeeze()
+                                                         'round22breakdown', 'round23breakdown', 'round24breakdown', 'total'], axis=1).squeeze()
         if user_row.empty:
             embed.add_field(name=f"0",
                             value=f"Most Points Scored",
                             inline=True)
         else:
             embed.add_field(name=f"{user_row.max()}",
-                            value=f"Most Points Scored",
+                            value=f"Most Points Scored in a Round",
                             inline=True)
         embed.set_image(url=user.display_avatar.url)
         # endregion

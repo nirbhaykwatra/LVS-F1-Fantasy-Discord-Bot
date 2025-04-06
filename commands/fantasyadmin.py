@@ -405,6 +405,7 @@ class FantasyAdmin(commands.Cog):
             color=settings.EMBED_COLOR
         )
         settings.F1_ROUND += 1
+        settings.exit_handler()
         logger.info(f"Points have been calculated. F1 round has been set to {settings.F1_ROUND}.")
         await interaction.followup.send(embed=embed_points, ephemeral=True)
 
