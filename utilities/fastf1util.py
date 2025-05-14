@@ -64,6 +64,18 @@ def get_session(year: int,
 #endregion
 
 if __name__=="__main__":
-
+    driver_info = get_driver_info(season='current')
+    logger.info(f"Got driver info: {driver_info.any()}")
+    constructor_info = ergast.get_constructor_info(season='current')
+    logger.info(f"Got constructor info: {constructor_info.any()}")
+    bogey_id = driver_info.loc[driver_info['driverCode'] == 'LAW', ['driverId']].squeeze()
+    logger.info(f"Bogey ID: {bogey_id}")
+    bogey_constructor = ergast.get_constructor_info(season='current', driver=bogey_id).constructorId.squeeze()
+    logger.info(f"Bogey constructor: {bogey_constructor}")
+    constructor_drivers = ergast.get_driver_info(season='current',
+                                                    constructor=bogey_constructor.iat[-1]).driverCode.to_list()
+    logger.info(f"Constructor drivers: {constructor_drivers}")
+    bogey_teammate = constructor_drivers[0] if constructor_drivers[0] != 'LAW' else constructor_drivers[1]
+    logger.info(f"Bogey teammate: {bogey_teammate}")
     pass
         

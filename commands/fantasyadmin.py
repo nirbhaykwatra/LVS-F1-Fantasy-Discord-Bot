@@ -134,7 +134,10 @@ class FantasyAdmin(commands.Cog):
             driverIds.append(driver_info.loc[driver_info['driverCode'] == driver, ['driverId']].squeeze())
     
         for driver in driverIds:
-            selected_constructors.append(f1.ergast.get_constructor_info(season='current', driver=driver).constructorId.squeeze())
+            if driver in dt.driver_current_teams.keys():
+                selected_constructors.append(dt.driver_current_teams[driver])
+            else:
+                selected_constructors.append(f1.ergast.get_constructor_info(season='current', driver=driver).constructorId.squeeze())
     
         bHasDuplicateConstructor = len(set(selected_constructors)) < 3
     
@@ -333,7 +336,12 @@ class FantasyAdmin(commands.Cog):
                         points_breakdown[list(player_team.keys())[list(player_team.values()).index(driver)]] = settings.RACE_POINTS[index]
 
                     driverId = driver_info.loc[driver_info['driverCode'] == driver, ['driverId']].squeeze()
-                    constructor = f1.ergast.get_constructor_info(season='current', driver=driverId).constructorId.squeeze()
+
+                    # UGHHHHHHHHHHHHHHHHHHHHHHHHHHHH FUCK RED BULL
+                    if driverId in dt.driver_current_teams.keys():
+                        constructor = dt.driver_current_teams[driverId]
+                    else:
+                        constructor = f1.ergast.get_constructor_info(season='current', driver=driverId).constructorId.squeeze()
                     
                     if constructor not in constructor_points:
                         constructor_points[constructor] = settings.RACE_POINTS[index]
@@ -1112,11 +1120,13 @@ class FantasyAdmin(commands.Cog):
                               colour=settings.EMBED_COLOR)
         undrafted = []
         for index, player in enumerate(sql.players.userid):
-            player_table = sql.retrieve_player_table(int(player))
-            user = await self.bot.fetch_user(int(player))
-            undrafted.append(user.name)
-            if int(settings.F1_ROUND) not in player_table['round'].to_list():
-                await user.send(embed=embed)
+            if index <= len(sql.players.userid) - 1:
+                player_table = sql.retrieve_player_table(int(player))
+                user = await self.bot.fetch_user(int(player))
+                undrafted.append(user.name)
+                if int(settings.F1_ROUND) not in player_table['round'].to_list():
+                    await user.send(embed=embed)
+                    logger.info(f"Sending DM reminder to {user.name}.")
 
         await interaction.response.send_message(f"Sent reminders to {undrafted}.", ephemeral=True)
 
