@@ -150,10 +150,17 @@ class FantasyAdmin(commands.Cog):
         for driver in current_round_counterpicks:
             if driver1 == driver or driver2 == driver or driver3 == driver or bogey_driver == driver:
                 bDriverCounterpicked = True
+
+        bDriverExcluded = False
+
+        for driver in selected_drivers:
+            if driver in dt.exclude_drivers:
+                bDriverExcluded = driver in dt.exclude_drivers
+                break
     
         #endregion
     
-        bDraftInvalid = bNoDriverFromConstructor or bPickExhausted or bHasDuplicateConstructor or bDriverCounterpicked or bHasDuplicateDriver
+        bDraftInvalid = bNoDriverFromConstructor or bPickExhausted or bHasDuplicateConstructor or bDriverCounterpicked or bHasDuplicateDriver or bDriverExcluded
     
         return bDraftInvalid
 
