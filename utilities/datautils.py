@@ -76,7 +76,8 @@ driver_current_teams = {
 }
 driver_current_teammates = {
     'LAW': 'HAD',
-    'TSU': 'VER'
+    'TSU': 'VER',
+    'COL': 'GAS'
 }
 td = timedelta()
 all_tz = pytz.all_timezones

@@ -1062,6 +1062,8 @@ class FantasyUser(commands.Cog):
 
         results_prep = results_prep.rename(dt.points_table_rename_map, axis='columns')
 
+
+
         ##for position in range(1, len(results_prep.index)):
            ## results_prep['rank'] = position
 
