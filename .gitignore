@@ -171,3 +171,4 @@ postgres_data/
 #Additional Files
 *.csv
 *.png
+data/points_table.pdf
