@@ -1,3 +1,5 @@
+#!/home/nirbhaykwatra/projects/personal/programming/LVS-F1-Fantasy-Discord-Bot/lvs-venv/bin python3
+
 #region Imports
 import traceback
 import discord
