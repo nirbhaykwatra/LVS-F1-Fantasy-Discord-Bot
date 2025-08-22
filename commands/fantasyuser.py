@@ -8,9 +8,8 @@ from utilities import datautils as dt
 from utilities import postgresql as sql
 from utilities import fastf1util as f1
 import pandas as pd
-import df2img as df2
+import df2img as d2i
 import utilities.timing as timing
-from html2image import Html2Image
 
 logger = settings.create_logger('fantasy-user')
 
@@ -1061,30 +1060,65 @@ class FantasyUser(commands.Cog):
         results_prep = results_prep.rename({'username': 'Player', 'teamname':'Team'}, axis='columns')
 
         results_prep = results_prep.rename(dt.points_table_rename_map, axis='columns')
+        
+        results_prep = results_prep.reset_index(drop=True)
+        
+        results_prep.index += 1
 
+        previous_grand_prix = Choice(name=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND - 1, "EventName"].item(),
+                            value=f1.event_schedule.loc[f1.event_schedule['RoundNumber'] == settings.F1_ROUND - 1, "RoundNumber"].item()
+                            )    
 
-
-        ##for position in range(1, len(results_prep.index)):
-           ## results_prep['rank'] = position
-
-        html = Html2Image(browser='chrome', browser_executable=settings.BROWSER_DIR, output_path=settings.BASE_DIR/"data", size=(3840, 1440))
-        results_html = results_prep.to_html(
-            index=False,
-            justify='center',
-            border=0,
+        # Render DataFrame directly to image using df2img with readable styling
+        fig = d2i.plot_dataframe(
+            df=results_prep,
+            title={
+                "text": "Points Table",
+                "font_color": "#FFFFFF",
+                "font_size": 30,
+                "font_family": "Formula1 Display-Wide",
+                "x": 0.5,
+                "pad_t": 0,
+                "pad_l": 0,
+                "pad_b": 0,
+                "pad_r": 0,
+                "xanchor": "center",
+                "y": 0.13,
+                "yanchor": "bottom",
+                "subtitle": {
+                    "text": f"after the {previous_grand_prix.name}",
+                    "font_color": "#FFFFFF",
+                    "font_size": 25,
+                    "font_family": "Formula1 Display-Regular",
+                }
+            },
+            tbl_header={
+                "align": "center",
+                "fill_color": "#212121",
+                "font_color": "#FFFFFF",
+                "font_size": [14, 14, 14, 11],
+                "font_family": "Formula1 Display-Wide",
+                "line_color": "#4a4a4a",
+            },
+            tbl_cells={
+                "align": "center",
+                "fill_color": ["#212121", "#1a1a1a"],
+                "font_color": "#FFFFFF",
+                "font_size": [13, 13, 13, 17],
+                "font_family": "Formula1 Display-Regular",
+                "height": 40,
+                "line_color": "#4a4a4a",
+            },
+            fig_size=(1920, 700),  # Adjust to (3840, 1440) if you want a 4K-wide image
+            col_width=[0.5, 2, 2.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 1],
+            row_fill_color=("#1a1a1a", "#212121"),
+            paper_bgcolor="rgba(0, 0, 0, 0)",
+            plotly_renderer="pdf"
         )
-        html_formatted = f"""
-        <html>
-            <head>
-                <link href="style.css" rel="stylesheet" />
-            </head>
-            <body>
-            {results_html}
-            </body>
-        </html>
-        """
-        html.screenshot(html_str=html_formatted, css_file=[settings.BASE_DIR/"data"/"html"/"style.css"], save_as='points_table.png')
-        await interaction.response.send_message(file=discord.File(settings.BASE_DIR/"data"/"points_table.png"), ephemeral=hidden)
+        d2i.save_dataframe(fig=fig, filename=settings.BASE_DIR / "data" / "points_table.pdf")
+
+        await interaction.response.send_message(file=discord.File(settings.BASE_DIR / "data" / "points_table.png"), ephemeral=hidden)
+
     #endregion
 
     @app_commands.command(name='edit-motto', description='Edit your team motto.')
