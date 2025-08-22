@@ -2,6 +2,8 @@ import json
 import pathlib
 import os
 import logging
+import time
+
 import discord
 from discord.utils import stream_supports_colour
 from dotenv import load_dotenv
@@ -54,6 +56,14 @@ class _ColourFormatter(logging.Formatter):
 def create_logger(name: str) -> logging.Logger:
     # Create logger object
     logger = logging.getLogger(name)
+    
+    logging.basicConfig(
+        filename=pathlib.Path(__file__).parent /'logs' / 'latest.log',
+        filemode='a',
+        format="%(asctime)s %(levelname)-8s %(name)s %(message)s",
+        datefmt='%Y-%m-%d %H:%M:%S',
+        level=logging.INFO
+    )
 
     # Set level to DEBUG for base logger object
     logger.setLevel(logging.DEBUG)
@@ -69,6 +79,7 @@ def create_logger(name: str) -> logging.Logger:
         dt_fmt = '%Y-%m-%d %H:%M:%S'
         logFormat = logging.Formatter('[{asctime}] [{levelname:<8}] {name}: {message}', dt_fmt, style='{')
     console.setFormatter(logFormat)
+    
     # Add console handler to logger
     logger.addHandler(console)
 
@@ -123,8 +134,12 @@ def exit_handler():
             "embed_color": EMBED_COLOR.to_rgb(),
         }
         json.dump(settings_dict, out_file)
-        out_file.close()
-        
+        out_file.close()   
     logger.info(f'Settings saved to {BASE_DIR / "settings.json"}')
+    
+    os.rename(BASE_DIR/"logs" / "latest.log", BASE_DIR / "logs"/ f"{time.strftime("%Y-%m-%d %H-%M-%S.log")}")
+    with open(BASE_DIR/"logs" / "latest.log", "w") as out_file:
+        out_file.write("")
+        out_file.close()
         
 atexit.register(exit_handler)
