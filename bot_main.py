@@ -32,7 +32,6 @@ intents.guild_scheduled_events = True
 
 #region Bot Setup
 bot = commands.Bot(command_prefix='!', intents=intents)
-guild = discord.Object(id=settings.GUILD_ID)
 #endregion
 
 
@@ -51,7 +50,8 @@ async def setup_hook():
 
 @bot.event
 async def on_ready():
-    logger.info(f'{bot.user.name} connected to \x1b[91m{bot.get_guild(guild.id)} (guild ID: {guild.id})')
+    for guild in bot.guilds:
+        logger.info(f'Connected to \x1b[91m{guild.name} (id: {guild.id})\x1b[0m')
     logger.info(f'\x1b[92mFantasy Manager is ready.')
 
 
@@ -87,12 +87,14 @@ async def dev(ctx):
 @dev.command(name='sync')
 @commands.has_role('Administrator')
 async def sync_tree(ctx):
-    try:
-        await bot.tree.sync(guild=guild)
-    except Exception as e:
-        await ctx.send(f'Error syncing command tree: {e}')
-    await ctx.send(f'Command Tree synced.')
-    dev_logger.info(f'Command Tree synced.')
+    for guild in bot.guilds:
+        try:
+            await bot.tree.sync(guild=guild)
+            await ctx.send(f'Command Tree synced for {guild.name}.')
+            dev_logger.info(f'Command Tree synced for {guild.name} (id: {guild.id}).')
+        except Exception as e:
+            await ctx.send(f'Error syncing command tree for {guild.name}: {e}')
+            dev_logger.error(f'Error syncing command tree for {guild.name}: {e}')
 
 @dev.command(name='reload')
 @commands.has_role('Administrator')
@@ -113,7 +115,15 @@ async def reload_ext(ctx):
 # Run the bot. Note: This must be the last method to be called, owing to the fact that
 # it is blocking and will not execute anything after it.
 def run():
-    bot.run(settings.TOKEN)
+    if (settings.MODE == "PRODUCTION"):
+        logger.info(f'Running in PRODUCTION mode.')
+        bot.run(settings.TOKEN)
+    elif (settings.MODE == "DEVELOPMENT"):
+        logger.info(f'Running in DEVELOPMENT mode.')
+        bot.run(settings.DEV_TOKEN)
+    else:
+        logger.error(f'Invalid MODE in settings.py. Please set MODE to either "PRODUCTION" or "DEVELOPMENT".')
+
 
 if __name__ == '__main__':
     run()
