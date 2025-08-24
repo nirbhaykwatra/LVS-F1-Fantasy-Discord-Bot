@@ -31,6 +31,7 @@ intents.guild_scheduled_events = True
 
 
 #region Bot Setup
+guild = discord.Object(id=settings.GUILD_ID)
 bot = commands.Bot(command_prefix='!', intents=intents)
 #endregion
 
@@ -87,14 +88,13 @@ async def dev(ctx):
 @dev.command(name='sync')
 @commands.has_role('Administrator')
 async def sync_tree(ctx):
-    for guild in bot.guilds:
-        try:
-            await bot.tree.sync(guild=guild)
-            await ctx.send(f'Command Tree synced for {guild.name}.')
-            dev_logger.info(f'Command Tree synced for {guild.name} (id: {guild.id}).')
-        except Exception as e:
-            await ctx.send(f'Error syncing command tree for {guild.name}: {e}')
-            dev_logger.error(f'Error syncing command tree for {guild.name}: {e}')
+    try:
+        await bot.tree.sync(guild=guild)
+        await ctx.send(f'Command Tree synced for guild {guild.id}.')
+        dev_logger.info(f'Command Tree synced for (id: {guild.id}).')
+    except Exception as e:
+        await ctx.send(f'Error syncing command tree: {e}')
+        dev_logger.error(f'Error syncing command tree: {e}')
 
 @dev.command(name='reload')
 @commands.has_role('Administrator')
