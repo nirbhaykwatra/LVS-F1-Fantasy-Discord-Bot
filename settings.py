@@ -5,7 +5,6 @@ import logging
 import time
 
 import discord
-from discord.utils import stream_supports_colour
 from dotenv import load_dotenv
 import atexit
 
@@ -141,6 +140,8 @@ def exit_handler():
         json.dump(settings_dict, out_file)
         out_file.close()   
     logger.info(f'Settings saved to {BASE_DIR / "settings.json"}')
+
+    logging.shutdown()
 
     os.rename(BASE_DIR/"logs" / "latest.log", BASE_DIR / "logs"/ f"{time.strftime("%Y-%m-%d %H-%M-%S.log")}")
     with open(BASE_DIR/"logs" / "latest.log", "w") as out_file:
