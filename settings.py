@@ -121,9 +121,14 @@ BOGEY_POINTS_SPRINT = [0, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 7]
 COUNTERPICK_LIMIT = 3
 DRIVER_BAN_LIMIT = 2
 
-GUILD_ID = int(os.getenv('GUILD_ID'))
 WEATHER_API_KEY = os.getenv('WEATHER_API_KEY')
 TOKEN = os.getenv('TOKEN')
+DEV_TOKEN = os.getenv('DEV_TOKEN')
+MODE = os.getenv('MODE')
+if MODE == "PRODUCTION":
+    GUILD_ID = int(os.getenv('GUILD_ID'))
+elif MODE == "DEVELOPMENT":
+    GUILD_ID = int(os.getenv('DEV_GUILD_ID'))
 #endregion
 
 def exit_handler():
@@ -136,7 +141,7 @@ def exit_handler():
         json.dump(settings_dict, out_file)
         out_file.close()   
     logger.info(f'Settings saved to {BASE_DIR / "settings.json"}')
-    
+
     os.rename(BASE_DIR/"logs" / "latest.log", BASE_DIR / "logs"/ f"{time.strftime("%Y-%m-%d %H-%M-%S.log")}")
     with open(BASE_DIR/"logs" / "latest.log", "w") as out_file:
         out_file.write("")
