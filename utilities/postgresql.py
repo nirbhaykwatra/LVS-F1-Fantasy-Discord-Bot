@@ -13,11 +13,11 @@ logger = settings.create_logger('sql')
 
 #region Utilities
 def write_to_fantasy_database(table: str, data: pd.DataFrame, if_exists: Literal["fail", "replace", "append"] = "replace", index: bool = False):
-    result = data.to_sql(table, conn, if_exists=if_exists, index=index, schema="public")
+    result = data.to_sql(table, conn, if_exists=if_exists, index=index)
     logger.info(f'Wrote to fantasy database')
 
 def write_to_player_database(table: str, data: pd.DataFrame, if_exists: Literal["fail", "replace", "append"] = "replace", index: bool = False):
-    result = data.to_sql(table, conn, if_exists=if_exists, index=index, schema="player_data")
+    result = data.to_sql(table, player_conn, if_exists=if_exists, index=index)
     logger.info(f'Wrote to player database')
 #endregion
 
@@ -36,33 +36,33 @@ except Exception as e:
 # endregion
 
 #region Connect to player database
-# player_engine = sql.create_engine(settings.POSTGRES_PLAYER_BASE_URL)
-# if not database_exists(player_engine.url):
-#     create_database(player_engine.url)
-#     logger.info(f'Player database not found. Created new database: {player_engine.url}.')
-# player_conn = None
-# try:
-#     player_conn = player_engine.connect()
-#     logger.info(
-#         f'Connected to {player_engine.url.database} database on {player_engine.url.username}@{player_engine.url.host}:{player_engine.url.port}')
-#     player_metadata = sql.MetaData()
-# except Exception as e:
-#     logger.error(f'Could not connect to {player_engine.url.database} database! Exception: {traceback.format_exc()}')
-# #endregion
-#
-# #region Connect to statistics database
-# stats_engine = sql.create_engine(settings.POSTGRES_STATS_BASE_URL)
-# if not database_exists(stats_engine.url):
-#     create_database(stats_engine.url)
-#     logger.info(f'Statistics database not found. Created new database: {stats_engine.url}.')
-# stats_conn = None
-# try:
-#     stats_conn = stats_engine.connect()
-#     logger.info(
-#         f'Connected to {stats_engine.url.database} database on {stats_engine.url.username}@{stats_engine.url.host}:{stats_engine.url.port}')
-#     stats_metadata = sql.MetaData()
-# except Exception as e:
-#     logger.error(f'Could not connect to {stats_engine.url.database} database! Exception: {traceback.format_exc()}')
+player_engine = sql.create_engine(settings.POSTGRES_PLAYER_BASE_URL)
+if not database_exists(player_engine.url):
+    create_database(player_engine.url)
+    logger.info(f'Player database not found. Created new database: {player_engine.url}.')
+player_conn = None
+try:
+    player_conn = player_engine.connect()
+    logger.info(
+        f'Connected to {player_engine.url.database} database on {player_engine.url.username}@{player_engine.url.host}:{player_engine.url.port}')
+    player_metadata = sql.MetaData()
+except Exception as e:
+    logger.error(f'Could not connect to {player_engine.url.database} database! Exception: {traceback.format_exc()}')
+#endregion
+
+#region Connect to statistics database
+stats_engine = sql.create_engine(settings.POSTGRES_STATS_BASE_URL)
+if not database_exists(stats_engine.url):
+    create_database(stats_engine.url)
+    logger.info(f'Statistics database not found. Created new database: {stats_engine.url}.')
+stats_conn = None
+try:
+    stats_conn = stats_engine.connect()
+    logger.info(
+        f'Connected to {stats_engine.url.database} database on {stats_engine.url.username}@{stats_engine.url.host}:{stats_engine.url.port}')
+    stats_metadata = sql.MetaData()
+except Exception as e:
+    logger.error(f'Could not connect to {stats_engine.url.database} database! Exception: {traceback.format_exc()}')
 #endregion
 
 #region Player Table methods
@@ -75,7 +75,7 @@ def create_player_table(user_id: int):
     write_to_player_database(str(user_id), player_db, if_exists='replace')
 
 def retrieve_player_table(user_id: int) -> pd.DataFrame:
-    player_table = pd.read_sql_table(str(user_id), schema="player_data", con=conn)
+    player_table = pd.read_sql_table(str(user_id), con=player_conn)
     return player_table
 
 def draft_to_table(user_id: int, round: int, driver1: str, driver2: str, driver3: str, wildcard: str, team: str):
